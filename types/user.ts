@@ -8,10 +8,15 @@ export interface User {
   id: string | null;
   username: string;
   email: string | null;
+  avatar: string | null;
+  phone: string | null;
+  status: number;
   roles: Role[];
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface CreateUserRequest extends Omit<User, 'id'> {
+export interface CreateUserRequest extends Omit<User, 'id' | 'createdAt' | 'updatedAt'> {
   password: string;
 }
 

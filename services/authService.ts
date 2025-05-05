@@ -468,7 +468,7 @@ export const authService = {
           }
           
           // Add token to request
-          const response = await api.post<ApiAuthResponse>('/auth/refresh', { token: refreshToken });
+          const response = await api.post<ApiAuthResponse>('/auth/refresh', { refreshToken: refreshToken });
           
           if (!response.data || !response.data.result) {
             throw new Error('Invalid refresh token response');
