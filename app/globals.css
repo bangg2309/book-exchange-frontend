@@ -1,0 +1,54 @@
+/* Thêm CSS sau vào cuối file */
+
+/* Swiper Gallery Styles */
+.image-gallery {
+  position: relative;
+}
+
+/* Main Swiper Styles */
+.main-swiper {
+  --swiper-theme-color: #10b981; /* Green-500 color for swiper controls */
+  --swiper-navigation-size: 24px;
+}
+
+.main-swiper .swiper-button-next,
+.main-swiper .swiper-button-prev {
+  background-color: rgba(255, 255, 255, 0.8);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.main-swiper .swiper-button-next:hover,
+.main-swiper .swiper-button-prev:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  transform: scale(1.1);
+}
+
+.main-swiper .swiper-button-next:after,
+.main-swiper .swiper-button-prev:after {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Thumbnail Swiper Styles */
+.thumbs-swiper {
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.thumbs-swiper .swiper-slide {
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.thumbs-swiper .swiper-slide-thumb-active {
+  opacity: 1;
+}
+
+/* Smooth transitions for images */
+.image-gallery img {
+  transition: opacity 0.3s ease;
+} 
