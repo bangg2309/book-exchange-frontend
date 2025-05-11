@@ -266,6 +266,18 @@ export const bookService = {
     }
   },
 
+  // Get listed book by ID
+  getListedBookById: async (id: string | number): Promise<ApiResponse<any>> => {
+    try {
+      const response = await apiService.get<ApiResponse<any>>(API_ROUTES.LISTED_BOOK_BY_ID(String(id)));
+      return response;
+    } catch (error) {
+      console.error('Error getting listed book details:', error);
+      toastService.error('Không thể tải thông tin sách. Vui lòng thử lại sau.');
+      throw error;
+    }
+  },
+
   // Get all books with pagination
   getBooks: async (page: number = 0, size: number = 10): Promise<BookResponse> => {
     try {
