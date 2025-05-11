@@ -257,11 +257,10 @@ export const bookService = {
   // Get book by ID
   getBookById: async (id: string): Promise<BookResponse> => {
     try {
-      const response = await api.get(API_ROUTES.BOOK_BY_ID(id));
-      return response.data;
+      const response = await apiService.get<ApiResponse<BookResponse>>(`${API_ROUTES.BOOKS}/${id}`);
+      return response.result;
     } catch (error) {
-      console.error('Error getting book details:', error);
-      toastService.error('Không thể tải thông tin sách. Vui lòng thử lại sau.');
+      console.error('Error fetching book details:', error);
       throw error;
     }
   },
