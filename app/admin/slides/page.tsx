@@ -5,6 +5,7 @@ import { slideService } from '@/services/slideService';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { Slide } from '@/types/silde';
 import SlideFormModal from './components/SlideFormModal';
+import toast from "react-hot-toast";
 
 export default function SlidesPage() {
     const [slides, setSlides] = useState<Slide[]>([]);
@@ -71,15 +72,15 @@ export default function SlidesPage() {
 
     const handleSaveSlide = async (data: Partial<Slide>) => {
         try {
-            if (selectedSlide?.id) {
-                await slideService.updateSlide(selectedSlide.id, data);
-            } else {
-                await slideService.createSlide(data);
+            if (!data.id) {
+                throw new Error('Thiếu ID slide để cập nhật');
             }
+            await slideService.updateSlide(data.id, data);
+            toast.success('Cập nhật slide thành công');
             await fetchSlidesFull();
-        } catch (err) {
-            console.error('Lưu slide thất bại:', err);
-            throw err;
+        } catch (error: any) {
+            console.error('Lưu slide thất bại:', error);
+            toast.error('Lưu slide thất bại');
         }
     };
 
@@ -153,7 +154,7 @@ export default function SlidesPage() {
                                     key={slide.id}
                                     className="hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
-                                    <td className="px-6 py-4">{slide.event ?? '-'}</td>
+                                    <td className="px-6 py-4 max-w-[250px] truncate whitespace-nowrap overflow-hidden">{slide.event ?? '-'}</td>
                                     <td className="px-6 py-4">{slide.addedBy ?? '-'}</td>
                                     <td className="px-6 py-4">
                                         {slide.imageUrl && (

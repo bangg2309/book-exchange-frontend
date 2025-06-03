@@ -1,13 +1,13 @@
 import { Slide } from "@/types/silde";
 
 export const slideService = {
-    // Lấy chỉ imageUrl (dùng cho trang Home)
     getSlide: async (): Promise<string[]> => {
         try {
             const response = await fetch('http://localhost:8081/slides');
             const data = await response.json();
-            console.log('📦 Dữ liệu trả về từ API:', data);
-            const urls = data.result.map((item: { imageUrl: string }) => item.imageUrl);
+            const urls = data.result
+                .filter((item: { status: number }) => item.status === 1) // lọc status === 1
+                .map((item: { imageUrl: string }) => item.imageUrl); // lấy imageUrl
             return urls;
         } catch (error) {
             console.error('❌ Lỗi khi fetch slide:', error);
@@ -15,12 +15,10 @@ export const slideService = {
         }
     },
 
-    // Lấy toàn bộ đối tượng slide (dùng cho trang quản lý slide)
     getSlidesFull: async (): Promise<Slide[]> => {
         try {
             const response = await fetch('http://localhost:8081/slides');
             const data = await response.json();
-            console.log('📦 Dữ liệu slide full trả về từ API:', data);
             return data.result as Slide[];
         } catch (error) {
             console.error('❌ Lỗi khi fetch slide full:', error);
@@ -28,7 +26,6 @@ export const slideService = {
         }
     },
 
-    // ✅ Thêm hàm xóa slide
     deleteSlide: async (id: string): Promise<void> => {
         try {
             const response = await fetch(`http://localhost:8081/slides/${id}`, {
@@ -39,6 +36,26 @@ export const slideService = {
             }
         } catch (error) {
             console.error('❌ Lỗi khi xóa slide:', error);
+            throw error;
+        }
+    },
+
+    updateSlide: async (id: string, updatedData: Partial<Slide>): Promise<Slide> => {
+        try {
+            const response = await fetch(`http://localhost:8081/slides/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedData),
+            });
+            if (!response.ok) {
+                throw new Error(`Cập nhật thất bại với mã lỗi ${response.status}`);
+            }
+            const data = await response.json();
+            return data.result as Slide;
+        } catch (error) {
+            console.error('❌ Lỗi khi cập nhật slide:', error);
             throw error;
         }
     }
