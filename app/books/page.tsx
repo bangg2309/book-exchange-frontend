@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Header from '@/components/home/Header';
 import Footer from '@/components/home/Footer';
 import BookCard from '@/components/shared/BookCard';
-import { Book } from '@/services/bookService';
+import { Book, BookFilterParams, bookService } from '@/services/bookService';
 import BookFilters from '@/components/books/BookFilters';
 import { FaSearch, FaFilter, FaSort, FaArrowUp, FaArrowDown, FaTimes, FaBookOpen, 
   FaMapMarkerAlt, FaUniversity, FaTags, FaListUl, FaThLarge, FaChevronRight, FaBook, FaSchool } from 'react-icons/fa';
@@ -121,23 +121,22 @@ export default function BooksPage() {
       try {
         setLoading(true);
         
-        // Build query parameters
-        const params = new URLSearchParams();
-        params.append('page', currentPage.toString());
-        params.append('size', '12');
-        params.append('sortBy', sortOption);
-        params.append('sortDir', sortDirection);
+        // Xây dựng các tham số lọc
+        const filterParams: BookFilterParams = {
+          page: currentPage,
+          size: 12,
+          sortBy: sortOption,
+          sortDir: sortDirection,
+          title: searchQuery,
+          categoryId: filters.categoryId,
+          minPrice: filters.minPrice,
+          maxPrice: filters.maxPrice,
+          condition: filters.condition,
+          schoolId: filters.schoolId
+        };
         
-        if (searchQuery) params.append('title', searchQuery);
-        if (filters.categoryId) params.append('categoryId', filters.categoryId);
-        if (filters.minPrice) params.append('minPrice', filters.minPrice);
-        if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
-        if (filters.condition) params.append('condition', filters.condition);
-        if (filters.schoolId) params.append('schoolId', filters.schoolId);
-        
-        // Make API request
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081'}/listed-books?${params.toString()}`);
-        const data = await response.json();
+        // Gọi service để lấy dữ liệu
+        const data = await bookService.getFilteredBooks(filterParams);
         
         if (data.code === 200 && data.result) {
           setBooks(data.result.content);
