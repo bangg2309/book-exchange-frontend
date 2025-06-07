@@ -89,7 +89,7 @@ const Header = () => {
               Trang chủ
             </Link>
             <Link 
-              href="/mua-sach" 
+              href="/books"
               className={`hover:text-green-200 transition-colors text-sm font-medium relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:bg-green-200 after:transition-all after:duration-300 ${isActive('/mua-sach') ? 'after:w-full font-semibold' : 'after:w-0'}`}
             >
               Mua sách

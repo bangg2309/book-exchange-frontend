@@ -8,6 +8,7 @@ export interface CartItemResponse {
     price: number;
     quantity: number;
     sellerName: string | null;
+    conditionNumber: number;
   }
 
   export interface CartAdditionRequest {
