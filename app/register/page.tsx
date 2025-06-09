@@ -120,9 +120,12 @@ export default function RegisterPage() {
                     <div className="space-y-3">
                         <button
                             onClick={() => handleSocialRegister('google')}
-                            className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-200 
-                            dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 
-                            dark:hover:bg-gray-800 transition-colors font-medium"
+                            className="w-full flex items-center justify-center gap-3 px-4 py-3 
+                                bg-white border-2 border-gray-200 shadow-sm
+                                dark:bg-gray-800 dark:border-gray-700 
+                                rounded-xl text-gray-700 dark:text-gray-300 
+                                hover:bg-gray-50 hover:shadow-md
+                                dark:hover:bg-gray-700 transition-all font-medium"
                             disabled={isLoading}
                         >
                             <FcGoogle className="w-6 h-6" />

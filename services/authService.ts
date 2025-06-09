@@ -422,6 +422,7 @@ export const authService = {
       
       // Check for valid response
       if (response.data?.redirectUrl) {
+        console.log(`Redirecting to ${provider} OAuth page:`, response.data.redirectUrl);
         // Redirect to the OAuth provider's login page
         window.location.href = response.data.redirectUrl;
       } else {
