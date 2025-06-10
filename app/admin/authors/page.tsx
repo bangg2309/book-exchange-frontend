@@ -1,35 +1,34 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { slideService } from '@/services/slideService';
+import { authorService } from '@/services/authorService';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { Slide } from '@/types/silde';
-import SlideFormModal from './components/SlideFormModal';
-import toast from "react-hot-toast";
+import { Author } from '@/types/author';
+import AuthorFormModal from './components/AuthorFormModal';
+import toast from 'react-hot-toast';
 
-export default function SlidesPage() {
-    const [slides, setSlides] = useState<Slide[]>([]);
-    const [filteredSlides, setFilteredSlides] = useState<Slide[]>([]);
+export default function AuthorsPage() {
+    const [authors, setAuthors] = useState<Author[]>([]);
+    const [filteredAuthors, setFilteredAuthors] = useState<Author[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedSlide, setSelectedSlide] = useState<Slide | null>(null);
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const [selectedAuthor, setSelectedAuthor] = useState<Author | null>(null);
 
     useEffect(() => {
-        fetchSlidesFull();
+        fetchAuthors();
     }, []);
 
-    const fetchSlidesFull = async () => {
+    const fetchAuthors = async () => {
         try {
             setLoading(true);
-            const data = await slideService.getSlidesFull();
-            setSlides(data);
-            setFilteredSlides(data);
+            const data = await authorService.getAuthors();
+            setAuthors(data);
+            setFilteredAuthors(data);
             setError(null);
         } catch (err) {
-            setError('Không thể tải danh sách slide. Vui lòng thử lại sau.');
+            setError('Không thể tải danh sách tác giả. Vui lòng thử lại sau.');
         } finally {
             setLoading(false);
         }
@@ -38,67 +37,62 @@ export default function SlidesPage() {
     const handleSearch = () => {
         const q = searchQuery.trim().toLowerCase();
         if (!q) {
-            setFilteredSlides(slides);
+            setFilteredAuthors(authors);
             return;
         }
-        const filtered = slides.filter(
-            (slide) =>
-                (slide.event?.toLowerCase().includes(q) ?? false) ||
-                (slide.addedBy?.toLowerCase().includes(q) ?? false)
+        const filtered = authors.filter((author) =>
+            author.name.toLowerCase().includes(q)
         );
-        setFilteredSlides(filtered);
+        setFilteredAuthors(filtered);
     };
 
-    const handleCreateSlide = () => {
-        setSelectedSlide(null);
+    const handleCreateAuthor = () => {
+        setSelectedAuthor(null);
         setIsModalOpen(true);
     };
 
-    const handleEditSlide = (slide: Slide) => {
-        setSelectedSlide(slide);
+    const handleEditAuthor = (author: Author) => {
+        setSelectedAuthor(author);
         setIsModalOpen(true);
     };
 
-    const handleDeleteSlide = async (id: string) => {
-        if (!id || !confirm('Bạn có chắc muốn xóa slide này không?')) return;
-
+    const handleDeleteAuthor = async (id: string) => {
+        if (!confirm('Bạn có chắc muốn xóa tác giả này không?')) return;
         try {
-            await slideService.deleteSlide(id);
-            await fetchSlidesFull();
+            await authorService.deleteAuthor(id);
+            toast.success('Xóa tác giả thành công');
+            await fetchAuthors();
         } catch (err) {
-            setError('Không thể xóa slide. Vui lòng thử lại sau.');
+            toast.error('Không thể xóa tác giả. Vui lòng thử lại sau.');
         }
     };
 
-    const handleSaveSlide = async (data: Partial<Slide>) => {
+    const handleSaveAuthor = async (data: Partial<Author>) => {
         try {
-            if (!data.id) {
-                throw new Error('Thiếu ID slide để cập nhật');
+            if (data.id) {
+                await authorService.updateAuthor(data.id, data);
+                toast.success('Cập nhật tác giả thành công');
+            } else {
+                await authorService.createAuthor(data);
+                toast.success('Thêm tác giả thành công');
             }
-            await slideService.updateSlide(data.id, data);
-            toast.success('Cập nhật slide thành công');
-            await fetchSlidesFull();
-        } catch (error: any) {
-            console.error('Lưu slide thất bại:', error);
-            toast.error('Lưu slide thất bại');
+            setIsModalOpen(false);
+            await fetchAuthors();
+        } catch (error) {
+            toast.error('Lưu tác giả thất bại');
         }
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('vi-VN');
     };
 
     return (
         <div className="space-y-6 p-4">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Quản lý slide</h1>
+                <h1 className="text-2xl font-bold">Quản lý tác giả</h1>
                 <button
-                    onClick={handleCreateSlide}
+                    onClick={handleCreateAuthor}
                     className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                     <Plus size={16} className="mr-2" />
-                    Thêm slide
+                    Thêm tác giả
                 </button>
             </div>
 
@@ -109,7 +103,7 @@ export default function SlidesPage() {
                     </div>
                     <input
                         type="text"
-                        placeholder="Tìm kiếm theo sự kiện hoặc người thêm..."
+                        placeholder="Tìm kiếm theo tên tác giả..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -133,60 +127,41 @@ export default function SlidesPage() {
                     <table className="min-w-full divide-y">
                         <thead className="bg-gray-100 dark:bg-gray-700 text-left text-sm text-gray-600 dark:text-gray-200">
                         <tr>
-                            <th className="px-6 py-3">Sự kiện</th>
-                            <th className="px-6 py-3">Người thêm</th>
-                            <th className="px-6 py-3">Ảnh</th>
-                            <th className="px-6 py-3">Trạng thái</th>
-                            <th className="px-6 py-3">Ngày thêm</th>
+                            <th className="px-6 py-3">Tên tác giả</th>
+                            <th className="px-6 py-3">Ảnh đại diện</th>
                             <th className="px-6 py-3 text-right">Hành động</th>
                         </tr>
                         </thead>
                         <tbody className="divide-y">
-                        {filteredSlides.length === 0 ? (
+                        {filteredAuthors.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="text-center py-4">
-                                    Không tìm thấy slide nào.
+                                <td colSpan={3} className="text-center py-4">
+                                    Không tìm thấy tác giả nào.
                                 </td>
                             </tr>
                         ) : (
-                            filteredSlides.map((slide) => (
-                                <tr
-                                    key={slide.id}
-                                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                                >
-                                    <td className="px-6 py-4 max-w-[250px] truncate whitespace-nowrap overflow-hiddennop">{slide.event ?? '-'}</td>
-                                    <td className="px-6 py-4">{slide.addedBy ?? '-'}</td>
+                            filteredAuthors.map((author) => (
+                                <tr key={author.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td className="px-6 py-4">{author.name}</td>
                                     <td className="px-6 py-4">
-                                        {slide.imageUrl && (
+                                        {author.imageUrl && (
                                             <img
-                                                src={slide.imageUrl}
-                                                alt="Slide"
-                                                className="w-16 h-10 object-cover rounded"
+                                                src={author.imageUrl}
+                                                alt={author.name}
+                                                className="w-16 h-16 object-cover rounded-full"
                                             />
                                         )}
                                     </td>
-                                    <td className="px-6 py-4">
-                                            <span
-                                                className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                                    slide.status === 1
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-gray-100 text-gray-800'
-                                                }`}
-                                            >
-                                                {slide.status === 1 ? 'Hiển thị' : 'Ẩn'}
-                                            </span>
-                                    </td>
-                                    <td className="px-6 py-4">{formatDate(slide.addedAt)}</td>
                                     <td className="px-6 py-4 text-right space-x-2">
                                         <button
-                                            onClick={() => handleEditSlide(slide)}
+                                            onClick={() => handleEditAuthor(author)}
                                             className="text-blue-600 hover:text-blue-800"
                                             title="Chỉnh sửa"
                                         >
                                             <Edit size={16} />
                                         </button>
                                         <button
-                                            onClick={() => slide.id && handleDeleteSlide(slide.id)}
+                                            onClick={() => handleDeleteAuthor(author.id)}
                                             className="text-red-600 hover:text-red-800"
                                             title="Xóa"
                                         >
@@ -201,12 +176,11 @@ export default function SlidesPage() {
                 )}
             </div>
 
-            <SlideFormModal
+            <AuthorFormModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                slide={selectedSlide}
-                onSave={handleSaveSlide}
-                defaultAddedBy={currentUser.username}
+                author={selectedAuthor}
+                onSave={handleSaveAuthor}
             />
         </div>
     );

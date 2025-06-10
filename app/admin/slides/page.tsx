@@ -154,7 +154,7 @@ export default function SlidesPage() {
                                     key={slide.id}
                                     className="hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
-                                    <td className="px-6 py-4 max-w-[250px] truncate whitespace-nowrap overflow-hidden">{slide.event ?? '-'}</td>
+                                    <td className="px-6 py-4 max-w-[250px] truncate whitespace-nowrap overflow-hiddennop">{slide.event ?? '-'}</td>
                                     <td className="px-6 py-4">{slide.addedBy ?? '-'}</td>
                                     <td className="px-6 py-4">
                                         {slide.imageUrl && (
