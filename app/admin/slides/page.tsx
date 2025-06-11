@@ -15,18 +15,22 @@ export default function SlidesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSlide, setSelectedSlide] = useState<Slide | null>(null);
+    const [page, setPage] = useState(0);
+    const [pageSize] = useState(5);
+    const [totalPages, setTotalPages] = useState(0);
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
     useEffect(() => {
-        fetchSlidesFull();
-    }, []);
+        fetchSlidesFull(page);
+    }, [page]);
 
-    const fetchSlidesFull = async () => {
+    const fetchSlidesFull = async (pageNumber: number = 0) => {
         try {
             setLoading(true);
-            const data = await slideService.getSlidesFull();
-            setSlides(data);
-            setFilteredSlides(data);
+            const data = await slideService.getSlidesFull(pageNumber, pageSize);
+            setSlides(data.content);
+            setFilteredSlides(data.content);
+            setTotalPages(data.totalPages);
             setError(null);
         } catch (err) {
             setError('Không thể tải danh sách slide. Vui lòng thử lại sau.');
@@ -64,7 +68,7 @@ export default function SlidesPage() {
 
         try {
             await slideService.deleteSlide(id);
-            await fetchSlidesFull();
+            await fetchSlidesFull(page);
         } catch (err) {
             setError('Không thể xóa slide. Vui lòng thử lại sau.');
         }
@@ -77,7 +81,7 @@ export default function SlidesPage() {
             }
             await slideService.updateSlide(data.id, data);
             toast.success('Cập nhật slide thành công');
-            await fetchSlidesFull();
+            await fetchSlidesFull(page);
         } catch (error: any) {
             console.error('Lưu slide thất bại:', error);
             toast.error('Lưu slide thất bại');
@@ -154,7 +158,9 @@ export default function SlidesPage() {
                                     key={slide.id}
                                     className="hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
-                                    <td className="px-6 py-4 max-w-[250px] truncate whitespace-nowrap overflow-hiddennop">{slide.event ?? '-'}</td>
+                                    <td className="px-6 py-4 max-w-[250px] truncate whitespace-nowrap overflow-hidden">
+                                        {slide.event ?? '-'}
+                                    </td>
                                     <td className="px-6 py-4">{slide.addedBy ?? '-'}</td>
                                     <td className="px-6 py-4">
                                         {slide.imageUrl && (
@@ -201,6 +207,42 @@ export default function SlidesPage() {
                 )}
             </div>
 
+            {/* Pagination nâng cấp */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-2 mt-6">
+                    <button
+                        onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+                        disabled={page === 0}
+                        className="px-3 py-1 text-sm rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                    >
+                        Trước
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                            key={i}
+                            onClick={() => setPage(i)}
+                            className={`px-3 py-1 text-sm rounded-md border ${
+                                i === page
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                            }`}
+                        >
+                            {i + 1}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => setPage((prev) => Math.min(prev + 1, totalPages - 1))}
+                        disabled={page + 1 >= totalPages}
+                        className="px-3 py-1 text-sm rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                    >
+                        Sau
+                    </button>
+                </div>
+            )}
+
+            {/* Modal */}
             <SlideFormModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

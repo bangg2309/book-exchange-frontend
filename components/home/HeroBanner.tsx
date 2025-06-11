@@ -13,7 +13,7 @@ const HeroBanner = () => {
 
   useEffect(() => {
     const fetchSlides = async () => {
-      const urls = await slideService.getSlide();
+      const urls = await slideService.getAllSlides();
       setImages(urls);
       console.log('✅ Ảnh slide đã load:', urls);
     };

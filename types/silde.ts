@@ -6,3 +6,11 @@ export interface Slide {
     event: string;
     status: number;
 }
+export interface SlidePage {
+    content: Slide[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+}
+
