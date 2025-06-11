@@ -16,6 +16,7 @@ import { OrderCreationRequest, OrderItemRequest, OrderBookItemRequest } from '@/
 import { authService } from '@/services/authService';
 import { useRouter } from 'next/navigation';
 import { shippingAddressService } from '@/services/shippingAddressService';
+import { voucherService } from '@/services/voucherService';
 
 // Định nghĩa kiểu dữ liệu
 type PaymentMethod = 'cod' | 'banking';
@@ -151,21 +152,33 @@ export default function CheckoutPage() {
   };
 
   // Xử lý áp dụng voucher
-  const handleApplyVoucher = () => {
+  const handleApplyVoucher = async () => {
     if (!voucherCode) {
       toastService.error('Vui lòng nhập mã giảm giá');
       return;
     }
     
-    // Mock logic kiểm tra voucher (thực tế sẽ gọi API)
-    if (voucherCode.toUpperCase() === 'FIRSTBUY') {
-      const discountAmount = Math.min(subtotal * 0.1, 50000); // Giảm 10%, tối đa 50k
-      setDiscount(discountAmount);
+    // Gọi API để kiểm tra và tính toán giảm giá
+    const result = await voucherService.validateVoucher(voucherCode, subtotal);
+    
+    if (result && result.valid) {
+      setDiscount(result.discount);
       toastService.success('Áp dụng mã giảm giá thành công');
-    } else {
-      toastService.error('Mã giảm giá không hợp lệ hoặc đã hết hạn');
     }
   };
+
+  // Khởi tạo voucher demo khi component mount
+  useEffect(() => {
+    const initializeDemoVoucher = async () => {
+      try {
+        await voucherService.initializeDemoVoucher();
+      } catch (error) {
+        console.error('Error initializing demo voucher:', error);
+      }
+    };
+
+    initializeDemoVoucher();
+  }, []);
 
   // Xử lý thanh toán
   const handlePlaceOrder = async () => {
