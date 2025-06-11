@@ -7,7 +7,7 @@ import { authService } from '@/services/authService';
 // Define paths that require admin role
 const ADMIN_PATHS = ['/admin'];
 // Define public paths that don't require auth
-const PUBLIC_PATHS = ['/', '/login', '/register', '/about', '/categories', '/insight'];
+const PUBLIC_PATHS = ['/', '/login', '/register', '/books', '/categories', '/insight'];
 
 export default function AuthInitializer() {
   const router = useRouter();
