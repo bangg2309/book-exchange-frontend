@@ -9,8 +9,10 @@ import Footer from '@/components/home/Footer';
 import { toastService } from '@/services/toastService';
 import {CartItemResponse} from "@/types/cart";
 import { cartService } from '@/services/cartService';
+import { useRouter } from 'next/navigation';
 
 export default function CartPage() {
+  const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItemResponse[]>([]);
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,8 +65,9 @@ export default function CartPage() {
       toastService.error('Vui lòng chọn ít nhất một sản phẩm');
       return;
     }
-    // This would redirect to checkout page in a real implementation
-    toastService.info('Chức năng thanh toán đang được phát triển');
+    
+    // Chuyển hướng đến trang thanh toán sử dụng router của Next.js
+    router.push('/checkout');
   };
 
   // Xử lý chọn/bỏ chọn item
