@@ -5,7 +5,7 @@ import { authorService } from '@/services/authorService';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { Author } from '@/types/author';
 import AuthorFormModal from './components/AuthorFormModal';
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 
 export default function AuthorsPage() {
     const [authors, setAuthors] = useState<Author[]>([]);
@@ -15,20 +15,24 @@ export default function AuthorsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedAuthor, setSelectedAuthor] = useState<Author | null>(null);
+    const [page, setPage] = useState(0);
+    const [pageSize] = useState(10);
+    const [totalPages, setTotalPages] = useState(0);
 
     useEffect(() => {
-        fetchAuthors();
-    }, []);
+        fetchAuthors(page);
+    }, [page]);
 
-    const fetchAuthors = async () => {
+    const fetchAuthors = async (pageNumber: number = 0) => {
         try {
             setLoading(true);
-            const data = await authorService.getAuthors();
-            setAuthors(data);
-            setFilteredAuthors(data);
+            const data = await authorService.getAuthors(pageNumber, pageSize);
+            setAuthors(data.content);
+            setFilteredAuthors(data.content);
+            setTotalPages(data.totalPages);
             setError(null);
-        } catch (err) {
-            setError('Không thể tải danh sách tác giả. Vui lòng thử lại sau.');
+        } catch {
+            setError('Không thể tải danh sách tác giả.');
         } finally {
             setLoading(false);
         }
@@ -41,7 +45,7 @@ export default function AuthorsPage() {
             return;
         }
         const filtered = authors.filter((author) =>
-            author.name.toLowerCase().includes(q)
+            author.name?.toLowerCase().includes(q)
         );
         setFilteredAuthors(filtered);
     };
@@ -57,13 +61,13 @@ export default function AuthorsPage() {
     };
 
     const handleDeleteAuthor = async (id: string) => {
-        if (!confirm('Bạn có chắc muốn xóa tác giả này không?')) return;
+        if (!id || !confirm('Bạn có chắc muốn xóa tác giả này không?')) return;
         try {
             await authorService.deleteAuthor(id);
+            await fetchAuthors(page);
             toast.success('Xóa tác giả thành công');
-            await fetchAuthors();
-        } catch (err) {
-            toast.error('Không thể xóa tác giả. Vui lòng thử lại sau.');
+        } catch {
+            toast.error('Không thể xóa tác giả.');
         }
     };
 
@@ -76,9 +80,8 @@ export default function AuthorsPage() {
                 await authorService.createAuthor(data);
                 toast.success('Thêm tác giả thành công');
             }
-            setIsModalOpen(false);
-            await fetchAuthors();
-        } catch (error) {
+            await fetchAuthors(page);
+        } catch {
             toast.error('Lưu tác giả thất bại');
         }
     };
@@ -98,12 +101,12 @@ export default function AuthorsPage() {
 
             <div className="flex items-center space-x-4">
                 <div className="relative flex-1">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3">
                         <Search size={18} className="text-gray-500" />
                     </div>
                     <input
                         type="text"
-                        placeholder="Tìm kiếm theo tên tác giả..."
+                        placeholder="Tìm kiếm theo tên..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -127,8 +130,8 @@ export default function AuthorsPage() {
                     <table className="min-w-full divide-y">
                         <thead className="bg-gray-100 dark:bg-gray-700 text-left text-sm text-gray-600 dark:text-gray-200">
                         <tr>
-                            <th className="px-6 py-3">Tên tác giả</th>
-                            <th className="px-6 py-3">Ảnh đại diện</th>
+                            <th className="px-6 py-3">ID</th>
+                            <th className="px-6 py-3">Tên</th>
                             <th className="px-6 py-3 text-right">Hành động</th>
                         </tr>
                         </thead>
@@ -142,16 +145,8 @@ export default function AuthorsPage() {
                         ) : (
                             filteredAuthors.map((author) => (
                                 <tr key={author.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td className="px-6 py-4">{author.id}</td>
                                     <td className="px-6 py-4">{author.name}</td>
-                                    <td className="px-6 py-4">
-                                        {author.imageUrl && (
-                                            <img
-                                                src={author.imageUrl}
-                                                alt={author.name}
-                                                className="w-16 h-16 object-cover rounded-full"
-                                            />
-                                        )}
-                                    </td>
                                     <td className="px-6 py-4 text-right space-x-2">
                                         <button
                                             onClick={() => handleEditAuthor(author)}
@@ -161,7 +156,7 @@ export default function AuthorsPage() {
                                             <Edit size={16} />
                                         </button>
                                         <button
-                                            onClick={() => handleDeleteAuthor(author.id)}
+                                            onClick={() => handleDeleteAuthor(author.id!)}
                                             className="text-red-600 hover:text-red-800"
                                             title="Xóa"
                                         >
@@ -176,6 +171,67 @@ export default function AuthorsPage() {
                 )}
             </div>
 
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-1 mt-6 text-sm">
+                    <button
+                        onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+                        disabled={page === 0}
+                        className="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                    >
+                        Trước
+                    </button>
+
+                    {page > 1 && (
+                        <>
+                            <button
+                                onClick={() => setPage(0)}
+                                className="px-3 py-1 rounded-md bg-white text-gray-700 hover:bg-gray-100"
+                            >
+                                1
+                            </button>
+                            {page > 2 && <span className="px-2">...</span>}
+                        </>
+                    )}
+
+                    {[
+                        page - 1,
+                        page,
+                        page + 1
+                    ].filter(p => p >= 0 && p < totalPages).map((p) => (
+                        <button
+                            key={p}
+                            onClick={() => setPage(p)}
+                            className={`px-3 py-1 rounded-md border ${
+                                p === page
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                            }`}
+                        >
+                            {p + 1}
+                        </button>
+                    ))}
+
+                    {page < totalPages - 2 && (
+                        <>
+                            {page < totalPages - 3 && <span className="px-2">...</span>}
+                            <button
+                                onClick={() => setPage(totalPages - 1)}
+                                className="px-3 py-1 rounded-md bg-white text-gray-700 hover:bg-gray-100"
+                            >
+                                {totalPages}
+                            </button>
+                        </>
+                    )}
+
+                    <button
+                        onClick={() => setPage((prev) => Math.min(prev + 1, totalPages - 1))}
+                        disabled={page + 1 >= totalPages}
+                        className="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                    >
+                        Sau
+                    </button>
+                </div>
+            )}
             <AuthorFormModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

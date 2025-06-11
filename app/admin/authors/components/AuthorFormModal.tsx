@@ -7,7 +7,6 @@ interface AuthorFormModalProps {
     onClose: () => void;
     onSave: (data: Partial<Author>) => void;
     author?: Author | null;
-    defaultCreatedBy?: string;
 }
 
 export default function AuthorFormModal({
@@ -15,48 +14,24 @@ export default function AuthorFormModal({
                                             onClose,
                                             author,
                                             onSave,
-                                            defaultCreatedBy = ''
                                         }: AuthorFormModalProps) {
     const [formData, setFormData] = useState<Partial<Author>>({
         name: '',
-        avatar: '',
-        email: '',
-        bio: '',
-        status: 1,
-        createdAt: new Date().toISOString(),
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (author) {
-            setFormData({
-                id: author.id,  // giữ ID để cập nhật
-                name: author.name,
-                avatar: author.avatar,
-                email: author.email,
-                bio: author.bio,
-                status: author.status,
-                createdAt: author.createdAt,
-            });
+            setFormData({ id: author.id, name: author.name });
         } else {
-            setFormData({
-                name: '',
-                avatar: '',
-                email: '',
-                bio: '',
-                status: 1,
-                createdAt: new Date().toISOString(),
-            });
+            setFormData({ name: '' });
         }
     }, [author]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: name === 'status' ? parseInt(value, 10) : value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -105,81 +80,6 @@ export default function AuthorFormModal({
                                 id="name"
                                 name="name"
                                 value={formData.name || ''}
-                                onChange={handleChange}
-                                required
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="avatar" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Ảnh đại diện (URL)
-                            </label>
-                            <input
-                                type="text"
-                                id="avatar"
-                                name="avatar"
-                                value={formData.avatar || ''}
-                                onChange={handleChange}
-                                required
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Email
-                            </label>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                value={formData.email || ''}
-                                onChange={handleChange}
-                                required
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Tiểu sử / mô tả
-                            </label>
-                            <textarea
-                                id="bio"
-                                name="bio"
-                                value={formData.bio || ''}
-                                onChange={handleChange}
-                                rows={3}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Trạng thái
-                            </label>
-                            <select
-                                id="status"
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                            >
-                                <option value={1}>Hoạt động</option>
-                                <option value={0}>Không hoạt động</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label htmlFor="createdAt" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Ngày tạo
-                            </label>
-                            <input
-                                type="datetime-local"
-                                id="createdAt"
-                                name="createdAt"
-                                value={formData.createdAt?.slice(0, 16) || ''}
                                 onChange={handleChange}
                                 required
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white"

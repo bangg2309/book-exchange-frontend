@@ -1,46 +1,60 @@
-import {Author} from "@/types";
+import { Author } from "@/types";
+import api, { apiService } from "@/services/api";
+import {ApiResponse} from "@/types/apiResponse";
+import {SlidePage} from "@/types/silde";
+import AuthorsPage from "@/app/admin/authors/page";
 
-const BASE_URL = 'http://localhost:8081';
+const handleApiError = (error: any, defaultMessage: string, context: string = ''): never => {
+  if (error.response && error.response.data) {
+    const errorData = error.response.data;
+    const errorMessage = errorData.message || defaultMessage;
 
+    console.error(`Backend error ${context}:`, errorMessage, 'Code:', errorData.code);
+    throw new Error(errorMessage);
+  }
+
+  console.error(`Error ${context}:`, error);
+  throw error;
+};
+
+// Helper for consistent response handling
+const processApiResponse = <T>(response: ApiResponse<T> | undefined, errorMessage: string): T => {
+  if (!response || !response.result) {
+    throw new Error(errorMessage);
+  }
+  return response.result;
+};
 export const authorService = {
-  async getAuthors(): Promise<Author[]> {
-    try {
-      const response = await fetch(`${BASE_URL}/authors`);
-      const data = await response.json();
 
-      if (data?.code === 1000 && Array.isArray(data.result)) {
-        return data.result;
+    getAuthors: async (page: number = 0, size: number = 5): Promise<AuthorsPage> => {
+      try {
+        const { data } = await api.get<ApiResponse<AuthorsPage>>(`/authors?page=${page}&size=${size}`);
+        return processApiResponse(data, 'Invalid authors response from server');
+      } catch (error: any) {
+        return handleApiError(error, 'An error occurred while fetching authors', 'fetching authors');
       }
-      console.warn('Phản hồi API không đúng định dạng khi lấy danh sách tác giả');
-      return [];
-    } catch (error) {
-      console.error('Lỗi khi lấy danh sách tác giả:', error);
-      return [];
-    }
-  },
+    },
 
   async searchAuthors(query: string): Promise<Author[]> {
     try {
       const authors = await this.getAuthors();
       const normalizedQuery = query.toLowerCase().trim();
-      return authors.filter(author =>
+      return authors.filter((author) =>
           author.name.toLowerCase().includes(normalizedQuery)
       );
     } catch (error) {
-      console.error('Lỗi khi tìm kiếm tác giả:', error);
+      console.error("Lỗi khi tìm kiếm tác giả:", error);
       return [];
     }
   },
 
   async getAuthorById(id: string): Promise<Author | null> {
     try {
-      const response = await fetch(`${BASE_URL}/authors/${id}`);
-      const data = await response.json();
-
+      const data = await apiService.get<{ code: number; result: Author }>(`/authors/${id}`);
       if (data?.code === 1000 && data.result) {
         return data.result;
       }
-      console.warn('Phản hồi API không đúng định dạng khi lấy tác giả theo ID');
+      console.warn("Phản hồi API không đúng định dạng khi lấy tác giả theo ID");
       return null;
     } catch (error) {
       console.error(`Lỗi khi lấy tác giả với ID ${id}:`, error);
@@ -50,31 +64,17 @@ export const authorService = {
 
   async createAuthor(data: Partial<Author>): Promise<boolean> {
     try {
-      const response = await fetch(`${BASE_URL}/authors`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      const resData = await response.json();
+      const resData = await apiService.post<{ code: number }>("/authors", data);
       return resData?.code === 1000;
     } catch (error) {
-      console.error('Lỗi khi tạo tác giả:', error);
+      console.error("Lỗi khi tạo tác giả:", error);
       return false;
     }
   },
 
-  async updateAuthor(id: string, data: Partial<Omit<Author, 'id'>>): Promise<boolean> {
+  async updateAuthor(id: string, data: Partial<Omit<Author, "id">>): Promise<boolean> {
     try {
-      const response = await fetch(`${BASE_URL}/authors/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      const resData = await response.json();
+      const resData = await apiService.put<{ code: number }>(`/authors/${id}`, data);
       return resData?.code === 1000;
     } catch (error) {
       console.error(`Lỗi khi cập nhật tác giả ID ${id}:`, error);
@@ -84,10 +84,7 @@ export const authorService = {
 
   async deleteAuthor(id: string): Promise<boolean> {
     try {
-      const response = await fetch(`${BASE_URL}/authors/${id}`, {
-        method: 'DELETE',
-      });
-      const resData = await response.json();
+      const resData = await apiService.delete<{ code: number }>(`/authors/${id}`);
       return resData?.code === 1000;
     } catch (error) {
       console.error(`Lỗi khi xoá tác giả ID ${id}:`, error);
@@ -95,4 +92,3 @@ export const authorService = {
     }
   },
 };
-
