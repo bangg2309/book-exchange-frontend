@@ -2,8 +2,7 @@ import { Author } from "@/types";
 import api, { apiService } from "@/services/api";
 import {ApiResponse} from "@/types/apiResponse";
 import {SlidePage} from "@/types/silde";
-import AuthorsPage from "@/app/admin/authors/page";
-
+import {AuthorPage} from "@/types/author";
 const handleApiError = (error: any, defaultMessage: string, context: string = ''): never => {
   if (error.response && error.response.data) {
     const errorData = error.response.data;
@@ -26,10 +25,10 @@ const processApiResponse = <T>(response: ApiResponse<T> | undefined, errorMessag
 };
 export const authorService = {
 
-    getAuthors: async (page: number = 0, size: number = 5): Promise<AuthorsPage> => {
+    getAuthors: async (page: number = 0, size: number = 5): Promise<AuthorPage> => {
       try {
-        const { data } = await api.get<ApiResponse<AuthorsPage>>(`/authors?page=${page}&size=${size}`);
-        return processApiResponse(data, 'Invalid authors response from server');
+        const { data } = await api.get<ApiResponse<AuthorPage>>(`/authors?page=${page}&size=${size}`);
+        return processApiResponse(data, 'Failed to fetch authors');
       } catch (error: any) {
         return handleApiError(error, 'An error occurred while fetching authors', 'fetching authors');
       }
