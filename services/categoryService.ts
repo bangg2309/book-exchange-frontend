@@ -173,7 +173,7 @@ export const categoryService = {
     }
   },
 
-  updateCategory: async (id: number, categoryData: Partial<Category>): Promise<Category> => {
+  updateCategory: async (id: string, categoryData: Partial<Category>): Promise<Category> => {
     try {
       // Đảm bảo dữ liệu gửi đi đúng định dạng mà API yêu cầu
       const formattedData: any = {
@@ -196,7 +196,7 @@ export const categoryService = {
     }
   },
 
-  deleteCategory: async (id: number): Promise<void> => {
+  deleteCategory: async (id: string): Promise<void> => {
     try {
       await api.delete(`/categories/${id}`);
     } catch (error) {

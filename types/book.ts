@@ -25,6 +25,8 @@ export interface BookFormData {
   thumbnail: string;
 }
 
+
+
 /**
  * Extended book data including optional images
  */
@@ -36,12 +38,12 @@ export interface BookData extends BookFormData {
 }
 
 /**
- * Book object as returned from API
+   * Book object as returned from API
  */
 export interface Book {
   id: string;
   title: string;
-  authors: Author[];
+  author: Author[];
   publisher?: string;
   publishYear?: number;
   language: string;
@@ -66,6 +68,7 @@ export interface Book {
     name: string;
     avatar?: string;
   };
+  name: string;
 }
 
 /**
@@ -101,4 +104,34 @@ export interface BookResponse {
   totalItems?: number;
   totalPages?: number;
   currentPage?: number;
-} 
+}
+
+export interface BookPage {
+  content: Book[];  // Danh sách các sách trong trang hiện tại
+  title: string; // Tiêu đề của trang, có thể là tên sách hoặc danh mục
+  pageable: {
+    pageNumber: number;  // Số trang hiện tại
+    pageSize: number;    // Kích thước trang
+    sort: {
+      empty: boolean;
+      sorted: boolean;
+      unsorted: boolean;
+    };
+    offset: number;      // Dịch chuyển trang
+    unpaged: boolean;
+    paged: boolean;
+  };
+  last: boolean;        // Có phải trang cuối không
+  totalElements: number; // Tổng số sách
+  totalPages: number;   // Tổng số trang
+  size: number;         // Số lượng mục mỗi trang
+  number: number;       // Số trang hiện tại
+  sort: {
+    empty: boolean;
+    sorted: boolean;
+    unsorted: boolean;
+  };
+  first: boolean;       // Có phải trang đầu không
+  numberOfElements: number; // Số sách trong trang hiện tại
+  empty: boolean;       // Trang có trống không
+}

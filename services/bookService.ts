@@ -7,6 +7,8 @@ import { cloudinaryService, UploadResult } from './cloudinaryService';
 import type { BookData, BookResponse } from '@/types';
 import { apiService } from './api';
 import { ApiResponse } from '../types/apiResponse';
+import {CategoryPage} from "@/types/category";
+import {BookPage} from "@/types/book";
 
 // API routes for books
 const API_ROUTES = {
@@ -30,8 +32,39 @@ export interface Book {
   description: string;
   thumbnail: string;
 }
-
+const handleApiError = (error: any, defaultMessage: string, context: string = ''): never => {
+  if (error.response?.data) {
+    const msg = error.response.data.message || defaultMessage;
+    console.error(`Backend error ${context}:`, msg, 'Code:', error.response.data.code);
+    throw new Error(msg);
+  }
+  console.error(`Error ${context}:`, error);
+  throw error;
+};
+const processApiResponse = <T>(response: ApiResponse<T> | undefined, errorMessage: string): T => {
+  if (!response || !response.result) {
+    throw new Error(errorMessage);
+  }
+  return response.result;
+};
 export const bookService = {
+  deleteBook: async (id: string): Promise<void> => {
+    try {
+      await api.delete(`/books/${id}`);
+    } catch (error) {
+      return handleApiError(error, 'Lỗi khi xóa book', 'deleteBook');
+    }
+  },
+
+  getBooksOfPage: async (page: number = 0, size: number = 5): Promise<BookPage> => {
+    try {
+      const { data } = await api.get<ApiResponse<BookPage>>(`/listed-books/all?page=${page}&size=${size}`);
+      return processApiResponse(data, 'Invalid categories response from server');
+    } catch (error: any) {
+      return handleApiError(error, 'An error occurred while fetching books', 'fetching books');
+    }
+  },
+
   // Create a new book listing
   createBookListing: async (bookData: BookData, imageFiles?: File[], thumbnailFile?: File): Promise<BookResponse> => {
     try {
@@ -498,4 +531,5 @@ export const bookService = {
       return [];
     }
   },
-}; 
+};
+
