@@ -104,7 +104,7 @@ export default function BookPage() {
               <th className="px-4 py-2 text-left text-sm font-medium">Tiêu đề</th>
               <th className="px-4 py-2 text-left text-sm font-medium">Nhà xuất bản</th>
               <th className="px-4 py-2 text-left text-sm font-medium">Tác giả</th>
-              <th className="px-4 py-2 text-left text-sm font-medium">Tình trạng</th>
+              {/*<th className="px-4 py-2 text-left text-sm font-medium">Tình trạng</th>*/}
               <th className="px-4 py-2 text-left text-sm font-medium">Ảnh</th>
               <th className="px-4 py-2 text-left text-sm font-medium">Giá mới</th>
               <th className="px-4 py-2 text-left text-sm font-medium">Giá bán</th>
@@ -138,7 +138,7 @@ export default function BookPage() {
                             : <span className="text-gray-400 italic">No authors</span>
                         }
                       </td>
-                      <td className="px-4 py-2 text-sm">{book.description}</td>
+                      {/*<td className="px-4 py-2 text-sm">{book.description}</td>*/}
                       <td className="px-4 py-2 text-sm">
                         <img src={book.thumbnail} alt="Thumbnail" className="h-10 w-10 object-cover rounded"/>
                       </td>
