@@ -9,3 +9,9 @@ export interface AuthorPage {
   number: number;
   size: number;
 }
+
+export interface AuthorType{
+    id: string;
+    name: string;
+
+}

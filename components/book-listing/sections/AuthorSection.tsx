@@ -3,8 +3,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiPlus } from 'react-icons/fi';
 import { Plus, X, Search } from 'lucide-react';
-import authorService, { AuthorType } from '@/services/authorService';
+// import authorService, { AuthorType } from '@/services/authorService';
 import { toastService } from '@/services/toastService';
+import { authorService } from '@/services/authorService';
+import {Author, AuthorPage} from '@/types/author';
 
 interface AuthorSectionProps {
   authors: { id: string; name: string }[];
@@ -14,9 +16,9 @@ interface AuthorSectionProps {
 
 const AuthorSection: React.FC<AuthorSectionProps> = ({ authors, onAuthorsChange, error }) => {
   const [authorSearchTerm, setAuthorSearchTerm] = useState('');
-  const [authorOptions, setAuthorOptions] = useState<AuthorType[]>([]);
+  const [authorOptions, setAuthorOptions] = useState<Author[]>([]);
   const [isLoadingAuthors, setIsLoadingAuthors] = useState(false);
-  const [filteredAuthors, setFilteredAuthors] = useState<AuthorType[]>([]);
+  const [filteredAuthors, setFilteredAuthors] = useState<Author[]>([]);
   const [isAuthorDropdownOpen, setIsAuthorDropdownOpen] = useState(false);
   const [showAddNewAuthorOption, setShowAddNewAuthorOption] = useState(false);
   const [currentAuthorIndex, setCurrentAuthorIndex] = useState(0);
@@ -31,8 +33,8 @@ const AuthorSection: React.FC<AuthorSectionProps> = ({ authors, onAuthorsChange,
       setIsLoadingAuthors(true);
       try {
         const authors = await authorService.getAuthors();
-        setAuthorOptions(authors);
-        setFilteredAuthors(authors.slice(0, 20));
+        setAuthorOptions(authors.content);
+        // setFilteredAuthors(authors.slice(0, 20));
       } catch (error) {
         console.error('Failed to load authors:', error);
       } finally {
