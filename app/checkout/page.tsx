@@ -17,19 +17,20 @@ import { authService } from '@/services/authService';
 import { useRouter } from 'next/navigation';
 import { shippingAddressService } from '@/services/shippingAddressService';
 import { voucherService } from '@/services/voucherService';
+import { paymentService } from '@/services/paymentService';
+import { PaymentMethod } from '@/types/payment';
 
 // Định nghĩa kiểu dữ liệu
-type PaymentMethod = 'cod' | 'banking';
 type DeliveryMethod = 'standard' | 'express';
 
 // Interface để nhóm sản phẩm theo người bán
-interface SellerGroup {
+type SellerGroup = {
   sellerId: number;
   sellerName: string;
   items: CartItemResponse[];
   shippingFee: number;
   note: string;
-}
+};
 
 export default function CheckoutPage() {
   // State
@@ -39,7 +40,7 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<AddressType[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('standard');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.COD);
   const [note, setNote] = useState('');
   const [voucherCode, setVoucherCode] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -51,6 +52,7 @@ export default function CheckoutPage() {
     content: 'BOOK-EXCHANGE-123456'
   });
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
 
   // Tính toán giá trị đơn hàng
@@ -180,61 +182,81 @@ export default function CheckoutPage() {
     initializeDemoVoucher();
   }, []);
 
-  // Xử lý thanh toán
+  // Xử lý đặt hàng
   const handlePlaceOrder = async () => {
     if (!selectedAddress) {
       toastService.error('Vui lòng chọn địa chỉ giao hàng');
       return;
     }
 
-    const currentUser = authService.getCurrentUser();
-    if (!currentUser || !currentUser.id) {
-      toastService.error('Vui lòng đăng nhập để thanh toán');
+    if (isProcessing) {
       return;
     }
 
+    setIsProcessing(true);
+
     try {
-      // Tạo danh sách các item trong đơn hàng theo seller groups
-      const orderItems: OrderItemRequest[] = sellerGroups.map(group => {
-        const bookItems: OrderBookItemRequest[] = group.items.map(item => ({
+      const userInfo = authService.getCurrentUser();
+      if (!userInfo) {
+        router.push('/login');
+        return;
+      }
+
+      // Tạo danh sách các OrderItem theo người bán
+      const orderItems: OrderItemRequest[] = sellerGroups.map(group => ({
+        sellerId: group.sellerId,
+        shippingFee: deliveryMethod === 'express' ? group.shippingFee * 2 : group.shippingFee,
+        note: group.note,
+        bookItems: group.items.map(item => ({
           bookId: item.bookId,
-          quantity: item.quantity,
+          quantity: 1,
           price: item.price,
-          subtotal: item.price * item.quantity
-        }));
-        
-        return {
-          sellerId: group.sellerId,
-          shippingFee: group.shippingFee * (deliveryMethod === 'express' ? 2 : 1),
-          note: group.note,
-          bookItems: bookItems
-        };
-      });
-      
-      // Tạo request để gửi đến API
+          subtotal: item.price
+        }))
+      }));
+
+      // Tạo đơn hàng
       const orderRequest: OrderCreationRequest = {
-        userId: Number(currentUser.id),
+        userId: Number(userInfo.id),
         shippingAddressId: selectedAddress,
         paymentMethod: paymentMethod,
-        deliveryMethod: deliveryMethod,
-        note: note || undefined,
-        voucherCode: voucherCode || undefined,
+        voucherCode: discount > 0 ? voucherCode : undefined,
         shippingFee: shippingFee,
         discount: discount,
         totalPrice: total,
-        items: orderItems
+        items: orderItems,
+        returnUrl: `${window.location.origin}/payment/callback`
       };
+
+      // Gọi API đặt hàng
+      const orderResponse = await orderService.createOrder(orderRequest);
       
-      // Gọi API để tạo đơn hàng
-      const result = await orderService.checkout(orderRequest);
-      
-      if (result) {
-        // Chuyển hướng đến trang xác nhận đơn hàng
-        router.push(`/orders/${result.id}`);
+      // Nếu thanh toán VNPay, chuyển hướng đến trang thanh toán
+      if (paymentMethod === PaymentMethod.VNPAY) {
+        const paymentRequest = {
+          orderId: orderResponse.id,
+          orderInfo: `Thanh toan don hang #${orderResponse.id}`,
+          amount: total,
+          language: 'vn'
+        };
+        
+        const paymentResponse = await paymentService.createPaymentUrl(paymentRequest);
+        
+        if (paymentResponse && paymentResponse.paymentUrl) {
+          // Chuyển hướng đến trang thanh toán VNPay
+          window.location.href = paymentResponse.paymentUrl;
+          return;
+        }
       }
+      
+      // Nếu là COD hoặc không có URL thanh toán, chuyển hướng đến trang đơn hàng
+      router.push(`/orders/${orderResponse.id}`);
+      toastService.success('Đặt hàng thành công!');
     } catch (error) {
       console.error('Error placing order:', error);
-      toastService.error('Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại sau.');
+      toastService.error('Đã có lỗi xảy ra khi đặt hàng. Vui lòng thử lại sau.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -456,21 +478,22 @@ export default function CheckoutPage() {
                 </div>
                 
                 <div className="space-y-3">
+                  {/* COD */}
                   <div 
                     className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                      paymentMethod === 'cod' 
+                      paymentMethod === PaymentMethod.COD 
                         ? 'border-green-500 bg-green-50' 
                         : 'border-gray-200 hover:border-green-300'
                     }`}
-                    onClick={() => setPaymentMethod('cod')}
+                    onClick={() => setPaymentMethod(PaymentMethod.COD)}
                   >
                     <div className="flex items-center">
                       <div className={`w-5 h-5 rounded-full border ${
-                        paymentMethod === 'cod' 
+                        paymentMethod === PaymentMethod.COD 
                           ? 'border-green-500 bg-green-500' 
                           : 'border-gray-300'
                       } flex items-center justify-center mr-3`}>
-                        {paymentMethod === 'cod' && (
+                        {paymentMethod === PaymentMethod.COD && (
                           <div className="w-2 h-2 rounded-full bg-white"></div>
                         )}
                       </div>
@@ -481,21 +504,61 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   
+                  {/* VNPay */}
                   <div 
                     className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                      paymentMethod === 'banking' 
+                      paymentMethod === PaymentMethod.VNPAY 
                         ? 'border-green-500 bg-green-50' 
                         : 'border-gray-200 hover:border-green-300'
                     }`}
-                    onClick={() => setPaymentMethod('banking')}
+                    onClick={() => setPaymentMethod(PaymentMethod.VNPAY)}
                   >
                     <div className="flex items-center">
                       <div className={`w-5 h-5 rounded-full border ${
-                        paymentMethod === 'banking' 
+                        paymentMethod === PaymentMethod.VNPAY 
                           ? 'border-green-500 bg-green-500' 
                           : 'border-gray-300'
                       } flex items-center justify-center mr-3`}>
-                        {paymentMethod === 'banking' && (
+                        {paymentMethod === PaymentMethod.VNPAY && (
+                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                        )}
+                      </div>
+                      <div className="flex items-center">
+                        <Image 
+                          src="/images/vnpay-logo.png" 
+                          alt="VNPay" 
+                          width={24} 
+                          height={24} 
+                          className="mr-2" 
+                        />
+                        <span className="font-medium text-gray-800">Thanh toán qua VNPay</span>
+                      </div>
+                    </div>
+                    {paymentMethod === PaymentMethod.VNPAY && (
+                      <div className="mt-3 pl-8">
+                        <p className="text-sm text-gray-600">
+                          Thanh toán trực tuyến qua VNPay bằng thẻ ATM, Visa, Master, JCB hoặc ví điện tử.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Banking */}
+                  <div 
+                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                      paymentMethod === PaymentMethod.BANKING 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 hover:border-green-300'
+                    }`}
+                    onClick={() => setPaymentMethod(PaymentMethod.BANKING)}
+                  >
+                    <div className="flex items-center">
+                      <div className={`w-5 h-5 rounded-full border ${
+                        paymentMethod === PaymentMethod.BANKING 
+                          ? 'border-green-500 bg-green-500' 
+                          : 'border-gray-300'
+                      } flex items-center justify-center mr-3`}>
+                        {paymentMethod === PaymentMethod.BANKING && (
                           <div className="w-2 h-2 rounded-full bg-white"></div>
                         )}
                       </div>
@@ -505,7 +568,7 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                     
-                    {paymentMethod === 'banking' && (
+                    {paymentMethod === PaymentMethod.BANKING && (
                       <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                         <h3 className="font-medium text-blue-800 mb-2">Thông tin chuyển khoản:</h3>
                         <div className="space-y-2">
@@ -616,10 +679,19 @@ export default function CheckoutPage() {
                   <button 
                     onClick={handlePlaceOrder}
                     className="w-full py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                    disabled={!selectedAddress}
+                    disabled={!selectedAddress || isProcessing}
                   >
-                    <FaCreditCard className="mr-2" />
-                    <span className="font-medium">Đặt hàng ({sellerGroups.length} shop)</span>
+                    {isProcessing ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        <span>Đang xử lý...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <FaCreditCard className="mr-2" />
+                        <span className="font-medium">Đặt hàng ({sellerGroups.length} shop)</span>
+                      </>
+                    )}
                   </button>
                   
                   <p className="text-center text-sm text-gray-500">

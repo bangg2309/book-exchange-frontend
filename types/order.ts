@@ -1,4 +1,5 @@
 import { AddressType } from "./address";
+import { PaymentMethod } from './payment';
 
 export interface OrderBookItemRequest {
   bookId: number;
@@ -17,13 +18,14 @@ export interface OrderItemRequest {
 export interface OrderCreationRequest {
   userId: number;
   shippingAddressId: number;
-  paymentMethod: 'cod' | 'banking';
+  paymentMethod: PaymentMethod | string;
   deliveryMethod?: 'standard' | 'express';
   note?: string;
   voucherCode?: string;
   shippingFee: number;
   discount?: number;
   totalPrice: number;
+  returnUrl?: string;
   items: OrderItemRequest[];
 }
 

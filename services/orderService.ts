@@ -14,6 +14,7 @@ const API_ROUTES = {
   CHECKOUT: '/orders/checkout',
   GET_USER_ORDERS: (userId: number) => `/orders/user/${userId}`,
   GET_SELLER_ORDERS: (sellerId: number) => `/orders/seller/${sellerId}`,
+  GET_ORDER: (orderId: number) => `/orders/${orderId}`,
 };
 
 export const orderService = {
@@ -42,6 +43,46 @@ export const orderService = {
         toastService.error(axiosError.response?.data?.message || 'Không thể xử lý đơn hàng');
       } else {
         toastService.error('Không thể xử lý đơn hàng');
+      }
+      return null;
+    }
+  },
+  
+  /**
+   * Create an order (alias for checkout)
+   */
+  createOrder: async (orderData: OrderCreationRequest): Promise<OrderResponse> => {
+    const result = await orderService.checkout(orderData);
+    if (!result) {
+      throw new Error('Không thể tạo đơn hàng');
+    }
+    return result;
+  },
+  
+  /**
+   * Get order by ID
+   */
+  getOrder: async (orderId: number): Promise<OrderResponse | null> => {
+    try {
+      if (!authService.isAuthenticated()) {
+        toastService.error('Vui lòng đăng nhập để xem đơn hàng');
+        return null;
+      }
+      
+      const response = await apiService.get<OrderResponseData>(API_ROUTES.GET_ORDER(orderId));
+      
+      if (response.code === 1000) {
+        return response.result;
+      }
+      
+      toastService.error(response.message || 'Không thể tải thông tin đơn hàng');
+      return null;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<any>;
+        toastService.error(axiosError.response?.data?.message || 'Không thể tải thông tin đơn hàng');
+      } else {
+        toastService.error('Không thể tải thông tin đơn hàng');
       }
       return null;
     }
