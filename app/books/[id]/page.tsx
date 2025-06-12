@@ -8,6 +8,8 @@ import Header from '@/components/home/Header';
 import Footer from '@/components/home/Footer';
 import BookPlaceholder from '@/components/book-listing/BookPlaceholder';
 import { bookService } from '@/services/bookService';
+import { cartService } from '@/services/cartService';
+import { Book } from '@/types/book';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode, Navigation, Thumbs } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
@@ -58,7 +60,6 @@ export default function BookDetailPage() {
   const [activeTab, setActiveTab] = useState<'description' | 'details' | 'reviews'>('description');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [thumbsSwiper, setThumbsSwiper] = useState<SwiperType | null>(null);
-  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     const fetchBookDetails = async () => {
@@ -126,9 +127,14 @@ export default function BookDetailPage() {
 
 
   // Xử lý thêm vào giỏ hàng
-  const handleAddToCart = () => {
-    alert(`Đã thêm ${quantity} sản phẩm "${book?.title}" vào giỏ hàng!`);
-    // Ở đây sẽ thêm logic thêm vào giỏ hàng thực tế sau
+  const handleAddToCart = async () => {
+    if (book) {
+      const success = await cartService.addToCart(Number(book.id));
+      if (success) {
+        // Dispatch custom event to update cart icon
+        window.dispatchEvent(new Event('cartUpdated'));
+      }
+    }
   };
 
   if (loading) {
@@ -405,25 +411,25 @@ export default function BookDetailPage() {
                 </div>
 
                 {/* Action Buttons - Moved to the bottom */}
-                <div className="flex gap-4 mt-8">
+                <div className="flex mt-8">
                   <button
                     onClick={handleAddToCart}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-green-600 text-green-600 font-medium rounded-lg hover:bg-green-50 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-green-600 text-green-600 font-medium rounded-lg hover:bg-green-50 transition-colors mr-4"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     Thêm vào giỏ hàng
                   </button>
-                  <button
-                    onClick={() => alert(`Đang xử lý mua sách "${book.title}"`)}
+                  <Link
+                    href="/cart"
                     className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     Mua ngay
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>

@@ -17,6 +17,7 @@ const API_ROUTES = {
   BOOK_SEARCH: '/books/search',
   LISTED_BOOKS: '/listed-books',
   LISTED_BOOK_BY_ID: (id: string) => `/listed-books/${id}`,
+  LATEST_BOOKS: '/listed-books/latest',
 };
 
 export interface Book {
@@ -32,6 +33,7 @@ export interface Book {
   description: string;
   thumbnail: string;
 }
+
 const handleApiError = (error: any, defaultMessage: string, context: string = ''): never => {
   if (error.response?.data) {
     const msg = error.response.data.message || defaultMessage;
@@ -47,6 +49,23 @@ const processApiResponse = <T>(response: ApiResponse<T> | undefined, errorMessag
   }
   return response.result;
 };
+=======
+
+// Định nghĩa interface cho các tham số lọc
+export interface BookFilterParams {
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: string;
+  title?: string;
+  categoryId?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  condition?: string;
+  schoolId?: string;
+}
+
+
 export const bookService = {
   deleteBook: async (id: string): Promise<void> => {
     try {
@@ -520,11 +539,44 @@ export const bookService = {
   },
 
   /**
-   * Get the latest listed books
+   * Lấy danh sách sách theo các tham số lọc
+   * @param filterParams Các tham số lọc, phân trang và sắp xếp
+   * @returns Promise với kết quả từ API
+   */
+  getFilteredBooks: async (filterParams: BookFilterParams): Promise<ApiResponse<any>> => {
+    try {
+      // Tạo đối tượng URLSearchParams để xây dựng query string
+      const params = new URLSearchParams();
+      
+      // Thêm các tham số không rỗng vào query
+      if (filterParams.page !== undefined) params.append('page', filterParams.page.toString());
+      if (filterParams.size !== undefined) params.append('size', filterParams.size.toString());
+      if (filterParams.sortBy) params.append('sortBy', filterParams.sortBy);
+      if (filterParams.sortDir) params.append('sortDir', filterParams.sortDir);
+      if (filterParams.title) params.append('title', filterParams.title);
+      if (filterParams.categoryId) params.append('categoryId', filterParams.categoryId);
+      if (filterParams.minPrice) params.append('minPrice', filterParams.minPrice);
+      if (filterParams.maxPrice) params.append('maxPrice', filterParams.maxPrice);
+      if (filterParams.condition) params.append('condition', filterParams.condition);
+      if (filterParams.schoolId) params.append('schoolId', filterParams.schoolId);
+      
+      // Gọi API với tham số đã xây dựng
+      const response = await apiService.get<ApiResponse<any>>(`${API_ROUTES.LISTED_BOOKS}?${params.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching filtered books:', error);
+      toastService.error('Không thể tải danh sách sách. Vui lòng thử lại sau.');
+      throw error;
+    }
+  },
+
+  /**
+   * Lấy danh sách sách mới nhất
+   * @returns Promise với danh sách sách mới nhất
    */
   getLatestBooks: async (): Promise<Book[]> => {
     try {
-      const response = await apiService.get<ApiResponse<Book[]>>('/listed-books/latest');
+      const response = await apiService.get<ApiResponse<Book[]>>(API_ROUTES.LATEST_BOOKS);
       return response.result;
     } catch (error) {
       console.error('Error fetching latest books:', error);

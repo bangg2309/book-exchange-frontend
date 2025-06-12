@@ -4,7 +4,21 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpen, Tag, ShoppingCart, Users, Settings, LogOut, Menu, X, ChevronDown, Library, BookMarked } from 'lucide-react';
+import {
+  LayoutDashboard,
+  BookOpen,
+  Tag,
+  ShoppingCart,
+  Users,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  ChevronDown,
+  Library,
+  BookMarked,
+  Sliders, SlidersIcon, PenLine
+} from 'lucide-react';
 import { authService } from '@/services/authService';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -49,6 +63,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Danh Mục Sách', href: '/admin/categories', icon: Tag },
     { name: 'Đơn Hàng', href: '/admin/orders', icon: ShoppingCart },
     { name: 'Người Dùng', href: '/admin/users', icon: Users },
+    { name: 'Quản lý Tác giả', href: '/admin/authors', icon: PenLine },
+    { name: 'Quản lý Slider', href: '/admin/slides', icon: SlidersIcon },
     { name: 'Cài Đặt', href: '/admin/settings', icon: Settings },
   ];
 
