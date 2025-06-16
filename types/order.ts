@@ -29,6 +29,45 @@ export interface OrderCreationRequest {
   items: OrderItemRequest[];
 }
 
+// Interface cho trang Profile
+export interface ProfileBookItem {
+  id: number;
+  title: string;
+  thumbnail?: string;
+  author?: string;
+  price: number;
+}
+
+export interface ProfileOrderItem {
+  id: number;
+  book?: ProfileBookItem;
+  quantity: number;
+  price: number;
+}
+
+export interface ProfileOrderResponse {
+  id: number;
+  orderCode: string;
+  userId: number;
+  buyer?: {
+    id: number;
+    username: string;
+  };
+  seller?: {
+    id: number;
+    username: string;
+  };
+  paymentMethod: string;
+  shippingFee: number;
+  discount: number;
+  totalAmount: number;
+  totalPrice: number;
+  status: OrderStatus;
+  orderItems?: ProfileOrderItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface OrderBookItemResponse {
   id: number;
   bookId: number;
@@ -75,5 +114,10 @@ export enum OrderStatus {
   SHIPPED = 3,
   DELIVERED = 4,
   CANCELLED = 5,
-  REFUNDED = 6
+  REFUNDED = 6,
+  
+  // Các trạng thái cho trang Profile
+  CONFIRMED = 'CONFIRMED',
+  SHIPPING = 'SHIPPING',
+  COMPLETED = 'COMPLETED'
 } 

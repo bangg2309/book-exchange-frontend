@@ -12,7 +12,10 @@ interface ShippingAddressesResponseData extends ApiResponse<AddressType[]> {}
 
 const API_ROUTES = {
   GET_ADDRESSES: (userId: number) => `/shipping-addresses/${userId}`,
-  CREATE_ADDRESS: '/shipping-addresses'
+  CREATE_ADDRESS: '/shipping-addresses',
+  UPDATE_ADDRESS: (id: number) => `/shipping-addresses/${id}`,
+  DELETE_ADDRESS: (id: number) => `/shipping-addresses/${id}`,
+  SET_DEFAULT: (id: number) => `/shipping-addresses/${id}/default`
 };
 
 export const shippingAddressService = {
@@ -58,7 +61,7 @@ export const shippingAddressService = {
       const response = await apiService.post<ShippingAddressResponseData>(API_ROUTES.CREATE_ADDRESS, addressData);
       
       if (response.code === 1000) {
-        toastService.success('Đã thêm địa chỉ mới');
+        toastService.success('Thêm địa chỉ mới thành công');
         return response.result;
       }
       
@@ -70,6 +73,96 @@ export const shippingAddressService = {
         toastService.error(axiosError.response?.data?.message || 'Không thể thêm địa chỉ mới');
       } else {
         toastService.error('Không thể thêm địa chỉ mới');
+      }
+      return null;
+    }
+  },
+  
+  /**
+   * Update an existing shipping address
+   */
+  updateAddress: async (id: number, addressData: Partial<AddressType>): Promise<AddressType | null> => {
+    try {
+      if (!authService.isAuthenticated()) {
+        toastService.error('Vui lòng đăng nhập để cập nhật địa chỉ');
+        return null;
+      }
+      
+      const response = await apiService.put<ShippingAddressResponseData>(API_ROUTES.UPDATE_ADDRESS(id), addressData);
+      
+      if (response.code === 1000) {
+        toastService.success('Cập nhật địa chỉ thành công');
+        return response.result;
+      }
+      
+      toastService.error(response.message || 'Không thể cập nhật địa chỉ');
+      return null;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<any>;
+        toastService.error(axiosError.response?.data?.message || 'Không thể cập nhật địa chỉ');
+      } else {
+        toastService.error('Không thể cập nhật địa chỉ');
+      }
+      return null;
+    }
+  },
+  
+  /**
+   * Delete a shipping address
+   */
+  deleteAddress: async (id: number): Promise<boolean> => {
+    try {
+      if (!authService.isAuthenticated()) {
+        toastService.error('Vui lòng đăng nhập để xóa địa chỉ');
+        return false;
+      }
+      
+      const response = await apiService.delete<ApiResponse<boolean>>(API_ROUTES.DELETE_ADDRESS(id));
+      
+      if (response.code === 1000) {
+        toastService.success('Xóa địa chỉ thành công');
+        return true;
+      }
+      
+      toastService.error(response.message || 'Không thể xóa địa chỉ');
+      return false;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<any>;
+        toastService.error(axiosError.response?.data?.message || 'Không thể xóa địa chỉ');
+      } else {
+        toastService.error('Không thể xóa địa chỉ');
+      }
+      return false;
+    }
+  },
+  
+  /**
+   * Set an address as default
+   */
+  setDefaultAddress: async (id: number): Promise<AddressType | null> => {
+    try {
+      if (!authService.isAuthenticated()) {
+        toastService.error('Vui lòng đăng nhập để đặt địa chỉ mặc định');
+        return null;
+      }
+      
+      const response = await apiService.put<ShippingAddressResponseData>(API_ROUTES.SET_DEFAULT(id), {});
+      
+      if (response.code === 1000) {
+        toastService.success('Đã đặt làm địa chỉ mặc định');
+        return response.result;
+      }
+      
+      toastService.error(response.message || 'Không thể đặt địa chỉ mặc định');
+      return null;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<any>;
+        toastService.error(axiosError.response?.data?.message || 'Không thể đặt địa chỉ mặc định');
+      } else {
+        toastService.error('Không thể đặt địa chỉ mặc định');
       }
       return null;
     }

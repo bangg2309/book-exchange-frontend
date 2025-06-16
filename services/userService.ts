@@ -1,6 +1,8 @@
 import api from './api';
 import { ApiResponse } from '@/types/apiResponse';
-import { User, UserPage, Role, CreateUserRequest } from '@/types/user';
+import { User, UserPage, Role, CreateUserRequest, UpdateProfileRequest } from '@/types/user';
+import { toastService } from '@/services/toastService';
+import axios, { AxiosError } from 'axios';
 
 // Helper for consistent error handling
 const handleApiError = (error: any, defaultMessage: string, context: string = ''): never => {
@@ -25,6 +27,30 @@ const processApiResponse = <T>(response: ApiResponse<T> | undefined, errorMessag
 };
 
 export const userService = {
+  getMyInfo: async (): Promise<User> => {
+    try {
+      console.log('[getMyInfo] Fetching user profile information');
+      const { data } = await api.get<ApiResponse<User>>('/users/my-info');
+      console.log('[getMyInfo] Response:', data);
+      return processApiResponse(data, 'Invalid user profile response from server');
+    } catch (error: any) {
+      console.error('[getMyInfo] Error:', error.response?.data || error.message);
+      return handleApiError(error, 'An error occurred while fetching user profile', 'fetching user profile');
+    }
+  },
+  
+  updateProfile: async (profileData: UpdateProfileRequest): Promise<User> => {
+    try {
+      console.log('[updateProfile] Updating user profile with data:', profileData);
+      const { data } = await api.put<ApiResponse<User>>('/users/update-profile', profileData);
+      console.log('[updateProfile] Response:', data);
+      return processApiResponse(data, 'Invalid response when updating user profile');
+    } catch (error: any) {
+      console.error('[updateProfile] Error:', error.response?.data || error.message);
+      return handleApiError(error, 'An error occurred while updating user profile', 'updating user profile');
+    }
+  },
+
   getUsers: async (page: number = 0, size: number = 5): Promise<UserPage> => {
     try {
       const { data } = await api.get<ApiResponse<UserPage>>(`/users?page=${page}&size=${size}`);
@@ -146,6 +172,40 @@ export const userService = {
       
       // For roles, we return defaults instead of throwing
       return getDefaultRoles();
+    }
+  },
+
+  /**
+   * Change user password
+   */
+  changePassword: async (oldPassword: string, newPassword: string): Promise<boolean> => {
+    try {
+      console.log('[changePassword] Sending request to change password');
+      
+      const { data } = await api.put<ApiResponse<void>>('/users/change-password', {
+        oldPassword,
+        newPassword
+      });
+      
+      console.log('[changePassword] Response:', data);
+      
+      if (data.code === 1000) {
+        toastService.success('Đổi mật khẩu thành công');
+        return true;
+      }
+      
+      toastService.error(data.message || 'Không thể đổi mật khẩu');
+      return false;
+    } catch (error: any) {
+      console.error('[changePassword] Error:', error.response?.data || error.message);
+      
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<any>;
+        toastService.error(axiosError.response?.data?.message || 'Không thể đổi mật khẩu');
+      } else {
+        toastService.error('Không thể đổi mật khẩu');
+      }
+      return false;
     }
   }
 };
