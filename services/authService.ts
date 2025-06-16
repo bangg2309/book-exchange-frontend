@@ -1,6 +1,8 @@
 import api from './api';
 import { ApiResponse } from '@/types/apiResponse';
 import { toastService } from './toastService';
+import axios from 'axios';
+import { API_BASE_URL } from './api';
 
 // Add singleton variables to track refresh state
 let _refreshInProgress = false;
@@ -468,7 +470,12 @@ export const authService = {
           }
           
           // Add token to request
-          const response = await api.post<ApiAuthResponse>('/auth/refresh', { refreshToken: refreshToken });
+          // Create a direct instance for refresh requests to bypass the auth interceptor
+          const response = await axios.post(
+            `${API_BASE_URL}/auth/refresh`,
+            { refreshToken: refreshToken },
+            { headers: { 'Content-Type': 'application/json' } }
+          );
           
           if (!response.data || !response.data.result) {
             throw new Error('Invalid refresh token response');
