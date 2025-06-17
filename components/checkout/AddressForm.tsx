@@ -10,9 +10,11 @@ import { authService } from '@/services/authService';
 interface AddressFormProps {
   onSaveAddress: (address: AddressType) => void;
   onClose: () => void;
+  editAddress?: AddressType;
+  isEdit?: boolean;
 }
 
-const AddressForm: React.FC<AddressFormProps> = ({ onSaveAddress, onClose }) => {
+const AddressForm: React.FC<AddressFormProps> = ({ onSaveAddress, onClose, editAddress, isEdit = false }) => {
   // Form state
   const [form, setForm] = useState<NewAddressForm>({
     fullName: '',
@@ -41,6 +43,41 @@ const AddressForm: React.FC<AddressFormProps> = ({ onSaveAddress, onClose }) => 
     fetchProvinces();
   }, []);
 
+  // Nếu đang chỉnh sửa, điền thông tin địa chỉ
+  useEffect(() => {
+    if (isEdit && editAddress) {
+      setForm({
+        fullName: editAddress.fullName,
+        phone: editAddress.phoneNumber,
+        address: editAddress.addressDetail,
+        defaultAddress: editAddress.defaultAddress
+      });
+      
+      // Tìm và chọn tỉnh/thành phố
+      fetchProvinces().then(() => {
+        // Tìm province theo tên
+        const province = locationState.provinces.find(p => p.name === editAddress.province);
+        if (province) {
+          setLocationState(prev => ({ ...prev, selectedProvince: province.code }));
+          fetchDistricts(province.code).then(() => {
+            // Tìm district theo tên
+            const district = locationState.districts.find(d => d.name === editAddress.district);
+            if (district) {
+              setLocationState(prev => ({ ...prev, selectedDistrict: district.code }));
+              fetchWards(district.code).then(() => {
+                // Tìm ward theo tên
+                const ward = locationState.wards.find(w => w.name === editAddress.ward);
+                if (ward) {
+                  setLocationState(prev => ({ ...prev, selectedWard: ward.code }));
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+  }, [isEdit, editAddress]);
+
   // Fetch danh sách tỉnh/thành phố
   const fetchProvinces = async () => {
     try {
@@ -56,12 +93,15 @@ const AddressForm: React.FC<AddressFormProps> = ({ onSaveAddress, onClose }) => 
         provinces,
         loading: { ...prev.loading, provinces: false }
       }));
+      
+      return provinces;
     } catch (error) {
       toastService.error('Không thể tải danh sách tỉnh thành');
       setLocationState(prev => ({
         ...prev,
         loading: { ...prev.loading, provinces: false }
       }));
+      return [];
     }
   };
 
@@ -84,12 +124,15 @@ const AddressForm: React.FC<AddressFormProps> = ({ onSaveAddress, onClose }) => 
         districts,
         loading: { ...prev.loading, districts: false }
       }));
+      
+      return districts;
     } catch (error) {
       toastService.error('Không thể tải danh sách quận huyện');
       setLocationState(prev => ({
         ...prev,
         loading: { ...prev.loading, districts: false }
       }));
+      return [];
     }
   };
 
@@ -110,12 +153,15 @@ const AddressForm: React.FC<AddressFormProps> = ({ onSaveAddress, onClose }) => 
         wards,
         loading: { ...prev.loading, wards: false }
       }));
+      
+      return wards;
     } catch (error) {
       toastService.error('Không thể tải danh sách phường xã');
       setLocationState(prev => ({
         ...prev,
         loading: { ...prev.loading, wards: false }
       }));
+      return [];
     }
   };
 
@@ -208,8 +254,8 @@ const AddressForm: React.FC<AddressFormProps> = ({ onSaveAddress, onClose }) => 
     }
 
     // Tạo địa chỉ mới theo định dạng backend API yêu cầu
-    const newAddressData: AddressType = {
-      id: 0, // ID sẽ được backend gán
+    const addressData: AddressType = {
+      id: isEdit && editAddress ? editAddress.id : 0, // Giữ nguyên ID nếu đang chỉnh sửa
       userId: Number(currentUser.id),
       fullName: form.fullName,
       phoneNumber: form.phone,
@@ -221,12 +267,12 @@ const AddressForm: React.FC<AddressFormProps> = ({ onSaveAddress, onClose }) => 
     };
 
     // Gọi callback để lưu địa chỉ
-    onSaveAddress(newAddressData);
+    onSaveAddress(addressData);
   };
 
   return (
     <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-      <h2 className="text-xl font-bold mb-4">Thêm địa chỉ mới</h2>
+      <h2 className="text-xl font-bold mb-4">{isEdit ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới'}</h2>
       
       <div className="space-y-4">
         <div>
@@ -364,7 +410,7 @@ const AddressForm: React.FC<AddressFormProps> = ({ onSaveAddress, onClose }) => 
             onClick={handleSaveAddress}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
-            Lưu
+            {isEdit ? 'Cập nhật' : 'Lưu'}
           </button>
         </div>
       </div>

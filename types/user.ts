@@ -7,6 +7,7 @@ export interface Role {
 export interface User {
   id: string | null;
   username: string;
+  fullName?: string;
   email: string | null;
   avatar: string | null;
   phone: string | null;
@@ -14,6 +15,13 @@ export interface User {
   roles: Role[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpdateProfileRequest {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  avatar?: string;
 }
 
 export interface CreateUserRequest extends Omit<User, 'id' | 'createdAt' | 'updatedAt'> {

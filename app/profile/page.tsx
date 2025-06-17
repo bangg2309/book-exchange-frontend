@@ -2,114 +2,59 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
+import { FaEdit } from 'react-icons/fa';
 import { authService } from '@/services/authService';
 import { toastService } from '@/services/toastService';
-import { FaEdit, FaStar, FaUser, FaBook, FaInfoCircle } from 'react-icons/fa';
-
-interface Book {
-  id: number;
-  title: string;
-  author: string;
-  publishYear: number;
-  price: number;
-  category: string;
-  imageUrl: string;
-}
+import { userService } from '@/services/userService';
+import { cloudinaryService } from '@/services/cloudinaryService';
+import { User } from '@/types/user';
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
+  // State
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editedProfile, setEditedProfile] = useState<{
+    fullName: string;
+    email: string;
+    phone: string;
+    avatar: string | null;
+  }>({
+    fullName: '',
+    email: '',
+    phone: '',
+    avatar: null
+  });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // Demo data cho sách đang bán
-  const [sellingBooks, setSellingBooks] = useState<Book[]>([
-    {
-      id: 1,
-      title: 'Lập trình Java Siêu vip pro',
-      author: 'Nguyễn Văn A',
-      publishYear: 2022,
-      price: 185000,
-      category: 'Công nghệ thông tin',
-      imageUrl: '/images/book-placeholder.jpg',
-    },
-    {
-      id: 2,
-      title: 'Kinh tế học đại cương',
-      author: 'Trần Thị B',
-      publishYear: 2021,
-      price: 120000,
-      category: 'Kinh tế',
-      imageUrl: '/images/book-placeholder.jpg',
-    },
-    {
-      id: 3,
-      title: 'Giải tích 1',
-      author: 'Lê Văn C',
-      publishYear: 2023,
-      price: 150000,
-      category: 'Toán học',
-      imageUrl: '/images/book-placeholder.jpg',
-    },
-    {
-      id: 4,
-      title: 'Marketing căn bản',
-      author: 'Phạm Thị D',
-      publishYear: 2019,
-      price: 90000,
-      category: 'Marketing',
-      imageUrl: '/images/book-placeholder.jpg',
-    },
-  ]);
-
-  // Demo data cho đánh giá
-  const [reviews, setReviews] = useState([
-    {
-      id: 1,
-      user: 'Nguyễn Thị B',
-      rating: 5,
-      content: 'Sách rất tốt, giao dịch nhanh chóng!',
-    },
-    {
-      id: 2,
-      user: 'Trần Văn C',
-      rating: 4,
-      content: 'Sách chất lượng, đóng gói cẩn thận. Rất hài lòng!',
-    },
-    {
-      id: 3,
-      user: 'Lê Thị D',
-      rating: 5,
-      content: 'Sách nội dung hay nhưng vẫn còn vài chỗ nhăn.',
-    },
-    {
-      id: 4,
-      user: 'Lý Quách E',
-      rating: 5,
-      content: 'Uy tín, phản hồi nhanh, chốt giá cả hợp lý.',
-    },
-  ]);
-
-  // Lấy thông tin người dùng
+  // Fetch user information
   useEffect(() => {
-    // Kiểm tra đăng nhập
+    // Check if logged in
     if (!authService.isAuthenticated()) {
       router.push('/login');
       return;
     }
 
-    const fetchUserInfo = async () => {
+    const fetchUserData = async () => {
       try {
-        // Thử lấy từ localStorage
-        let userInfo = authService.getCurrentUser();
+        setIsLoading(true);
         
-        // Nếu không có, lấy từ API
-        if (!userInfo) {
-          userInfo = await authService.getUserInfo();
-        }
+        // Fetch user profile from API
+        const userProfile = await userService.getMyInfo();
+        setUser(userProfile);
         
-        setUser(userInfo);
+        // Initialize edited profile with current values
+        setEditedProfile({
+          fullName: userProfile.fullName || '',
+          email: userProfile.email || '',
+          phone: userProfile.phone || '',
+          avatar: userProfile.avatar
+        });
       } catch (error) {
         console.error('Không thể tải thông tin người dùng:', error);
         toastService.error('Không thể tải thông tin người dùng');
@@ -118,192 +63,328 @@ export default function ProfilePage() {
       }
     };
 
-    fetchUserInfo();
+    fetchUserData();
   }, [router]);
 
-  // Hàm xử lý đăng xuất
-  const handleLogout = async () => {
-    await authService.logout();
-    router.push('/login');
+  // Xử lý chỉnh sửa thông tin cá nhân
+  const handleEditProfile = () => {
+    if (user) {
+      setEditedProfile({
+        fullName: user.fullName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        avatar: user.avatar
+      });
+      setIsEditingProfile(true);
+    }
   };
 
-  // Hiển thị sao đánh giá
-  const renderStars = (rating: number) => {
-    return Array(5).fill(0).map((_, index) => (
-      <FaStar 
-        key={index} 
-        className={`w-4 h-4 ${index < rating ? 'text-yellow-400' : 'text-gray-300'}`} 
-      />
-    ));
+  const handleCancelEdit = () => {
+    setIsEditingProfile(false);
+    setAvatarFile(null);
   };
 
-  // Định dạng số tiền theo tiền tệ Việt Nam
-  const formatCurrency = (amount: number) => {
-    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + 'đ';
+  const handleProfileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditedProfile(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-700"></div>
-      </div>
-    );
-  }
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Kiểm tra kích thước file
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        toastService.error('Kích thước ảnh không được vượt quá 5MB');
+        return;
+      }
+      
+      // Kiểm tra loại file
+      if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+        toastService.error('Chỉ chấp nhận file ảnh định dạng JPG, PNG');
+        return;
+      }
+      
+      setAvatarFile(file);
+      
+      // Preview avatar
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target && event.target.result) {
+          // Tạo một đối tượng Image để kiểm tra kích thước
+          const img = document.createElement('img');
+          img.onload = function() {
+            setEditedProfile(prev => ({
+              ...prev,
+              avatar: event.target?.result as string
+            }));
+          };
+          img.src = event.target.result as string;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    
+    try {
+      setIsUpdatingProfile(true);
+      
+      let avatarUrl = user.avatar || undefined;
+      
+      // Upload avatar if changed
+      if (avatarFile) {
+        const uploadResult = await cloudinaryService.uploadImage(avatarFile, 'book-exchange/avatars');
+        if (uploadResult) {
+          avatarUrl = uploadResult.secureUrl;
+        } else {
+          toastService.error('Không thể tải lên ảnh đại diện');
+          setIsUpdatingProfile(false);
+          return;
+        }
+      }
+      
+      // Update user profile using the new API endpoint
+      const updatedUser = await userService.updateProfile({
+        fullName: editedProfile.fullName,
+        email: editedProfile.email,
+        phone: editedProfile.phone,
+        avatar: avatarUrl
+      });
+      
+      // Update local state
+      setUser(updatedUser);
+      setIsEditingProfile(false);
+      setAvatarFile(null);
+      
+      toastService.success('Cập nhật thông tin thành công!');
+    } catch (error) {
+      console.error('Lỗi khi cập nhật thông tin:', error);
+      toastService.error('Không thể cập nhật thông tin người dùng');
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header / Banner */}
-      <div className="bg-green-700 h-28 relative">
-        {/* Phần banner cố định */}
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-4 border-b border-gray-100">
+        <h2 className="text-xl font-bold">Hồ sơ của tôi</h2>
+        <p className="text-sm text-gray-500">Quản lý thông tin hồ sơ để bảo mật tài khoản</p>
       </div>
-
-      {/* Thông tin profile và số liệu */}
-      <div className="container mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-lg mb-6 p-6 mt-6">
-          {/* Thông tin người dùng */}
-          <div className="flex flex-col md:flex-row items-start gap-6">
-            {/* Avatar */}
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-2xl border-4 border-white shadow">
-                {user?.avatar ? (
-                  <Image src={user.avatar} alt={user?.username || "AV"} width={80} height={80} className="rounded-full" />
+      
+      {isLoading ? (
+        <div className="p-6 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700 mx-auto mb-4"></div>
+          <p>Đang tải thông tin...</p>
+        </div>
+      ) : (
+        <div className="p-6">
+          <div className="flex flex-col md:flex-row">
+            <div className="md:w-2/3 md:border-r md:border-gray-100 md:pr-8">
+              {isEditingProfile ? (
+                // Form chỉnh sửa thông tin
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-3 items-center">
+                    <label className="text-right pr-4 text-gray-500">Tên đăng nhập:</label>
+                    <div className="col-span-2">{user?.username || "N/A"}</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 items-center">
+                    <label htmlFor="fullName" className="text-right pr-4 text-gray-500">Họ và tên:</label>
+                    <div className="col-span-2">
+                      <input
+                        id="fullName"
+                        name="fullName"
+                        type="text"
+                        value={editedProfile.fullName}
+                        onChange={handleProfileInputChange}
+                        className="w-full p-2 border border-gray-300 rounded focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 items-center">
+                    <label htmlFor="email" className="text-right pr-4 text-gray-500">Email:</label>
+                    <div className="col-span-2">
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={editedProfile.email || ''}
+                        onChange={handleProfileInputChange}
+                        className="w-full p-2 border border-gray-300 rounded focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 items-center">
+                    <label htmlFor="phone" className="text-right pr-4 text-gray-500">Số điện thoại:</label>
+                    <div className="col-span-2">
+                      <input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        value={editedProfile.phone || ''}
+                        onChange={handleProfileInputChange}
+                        className="w-full p-2 border border-gray-300 rounded focus:ring-green-500 focus:border-green-500"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 items-center">
+                    <label className="text-right pr-4 text-gray-500">Ngày tham gia:</label>
+                    <div className="col-span-2">
+                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : "N/A"}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 items-center">
+                    <div className="col-span-2 col-start-2 flex space-x-3">
+                      <button 
+                        onClick={handleSaveProfile}
+                        disabled={isUpdatingProfile}
+                        className="px-6 py-2 bg-green-700 text-white rounded hover:bg-green-800 transition disabled:bg-gray-400"
+                      >
+                        {isUpdatingProfile ? 'Đang lưu...' : 'Lưu thay đổi'}
+                      </button>
+                      <button 
+                        onClick={handleCancelEdit}
+                        disabled={isUpdatingProfile}
+                        className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-100 transition disabled:bg-gray-200"
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Hiển thị thông tin
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-3 items-center">
+                    <label className="text-right pr-4 text-gray-500">Tên đăng nhập:</label>
+                    <div className="col-span-2">{user?.username || "N/A"}</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 items-center">
+                    <label className="text-right pr-4 text-gray-500">Họ và tên:</label>
+                    <div className="col-span-2">{user?.fullName || "Chưa cập nhật"}</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 items-center">
+                    <label className="text-right pr-4 text-gray-500">Email:</label>
+                    <div className="col-span-2">{user?.email || "Chưa cập nhật"}</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 items-center">
+                    <label className="text-right pr-4 text-gray-500">Số điện thoại:</label>
+                    <div className="col-span-2">{user?.phone || "Chưa cập nhật"}</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 items-center">
+                    <label className="text-right pr-4 text-gray-500">Ngày tham gia:</label>
+                    <div className="col-span-2">
+                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : "N/A"}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 items-center">
+                    <div className="col-span-2 col-start-2">
+                      <button 
+                        onClick={handleEditProfile}
+                        className="px-6 py-2 bg-green-700 text-white rounded hover:bg-green-800 transition"
+                      >
+                        Sửa hồ sơ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="md:w-1/3 md:pl-8 mt-8 md:mt-0 flex flex-col items-center">
+              <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-4xl border-4 border-white shadow-lg overflow-hidden mb-4">
+                {isEditingProfile ? (
+                  editedProfile.avatar ? (
+                    <div className="relative w-full h-full">
+                      <div className="w-full h-full">
+                        <img 
+                          src={editedProfile.avatar} 
+                          alt={user?.username || ''} 
+                          className="w-full h-full object-cover"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      </div>
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <FaEdit className="text-white text-2xl" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div 
+                      className="w-full h-full flex items-center justify-center cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <FaEdit className="text-gray-400 text-2xl" />
+                    </div>
+                  )
                 ) : (
-                  user?.username?.substring(0, 2).toUpperCase() || "AV"
+                  user?.avatar ? (
+                    <div className="w-full h-full">
+                      <Image 
+                        src={user.avatar} 
+                        alt={user.username} 
+                        width={128}
+                        height={128}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <span className="font-medium">{user?.username?.substring(0, 2).toUpperCase() || "AV"}</span>
+                  )
                 )}
               </div>
-            </div>
-
-            {/* Thông tin cá nhân */}
-            <div className="flex-1">
-              <h1 className="text-xl font-bold">{user?.fullName || "Nguyễn Văn A"}</h1>
-              <p className="text-gray-500 text-sm mb-2">{user?.email || "nguyenvana@example.com"}</p>
-              <p className="text-gray-700 text-sm mb-4">{user?.bio || "Xin chào! Tôi là một sinh viên đam mê đọc sách và chia sẻ kiến thức. Hãy kết nối với tôi nhé!"}</p>
               
-              {/* Số liệu */}
-              <div className="flex gap-10 mt-3">
-                <div className="text-center">
-                  <p className="text-xl font-bold text-green-700">{sellingBooks.length}</p>
-                  <p className="text-xs text-gray-500">Sách đã bán</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xl font-bold text-amber-500">4.8</p>
-                  <p className="text-xs text-gray-500">Đánh giá</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xl font-bold text-blue-600">120</p>
-                  <p className="text-xs text-gray-500">Người theo dõi</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Nút chỉnh sửa và đăng xuất */}
-            <div className="flex flex-col gap-2 md:flex-row">
-              <button 
-                className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-800 transition"
-                onClick={() => router.push('/profile/edit')}
-              >
-                Chỉnh sửa profile
-              </button>
-              <button 
-                className="px-4 py-2 border border-green-700 text-green-700 rounded hover:bg-green-50 transition"
-                onClick={handleLogout}
-              >
-                Đăng xuất
-              </button>
+              {isEditingProfile ? (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg, image/png"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition"
+                  >
+                    Chọn ảnh
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={handleEditProfile}
+                  className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition"
+                >
+                  Thay đổi ảnh
+                </button>
+              )}
+              
+              <p className="text-gray-500 text-xs mt-2 text-center">
+                Dụng lượng file tối đa 5 MB<br />
+                Định dạng: .JPEG, .PNG
+              </p>
             </div>
           </div>
         </div>
-
-        {/* Sách đang bán */}
-        <div className="mb-10">
-          <h2 className="text-xl font-bold mb-4 border-b-2 border-green-700 pb-2">Sách đang bán</h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {sellingBooks.map(book => (
-              <div key={book.id} className="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
-                <div className="h-40 bg-gray-200 relative">
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                    <span>Hình ảnh sách</span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-md mb-1">{book.title}</h3>
-                  <p className="text-sm text-gray-600">
-                    {book.author} • <span className="text-gray-500">Năm xuất bản: {book.publishYear}</span>
-                  </p>
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="text-sm text-gray-500">{book.category}</p>
-                  </div>
-                  <p className="text-green-700 font-bold mt-2">{formatCurrency(book.price)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="flex justify-center mt-6">
-            <button className="px-6 py-2 bg-green-700 text-white rounded-md hover:bg-green-800 transition">
-              Xem tất cả
-            </button>
-          </div>
-        </div>
-
-        {/* Đánh giá */}
-        <div className="mb-10">
-          <h2 className="text-xl font-bold mb-4 border-b-2 border-green-700 pb-2">Đánh giá</h2>
-          
-          <div className="space-y-4">
-            {reviews.map(review => (
-              <div key={review.id} className="bg-white rounded-lg shadow p-4 border border-gray-100">
-                <div className="flex justify-between">
-                  <h3 className="font-bold">{review.user}</h3>
-                  <div className="flex">
-                    {renderStars(review.rating)}
-                  </div>
-                </div>
-                <p className="text-gray-700 mt-2">{review.content}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-green-800 text-white py-12">
-        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <h3 className="text-lg font-bold mb-4">Liên kết</h3>
-            <ul className="space-y-2">
-              <li><Link href="/" className="hover:underline">Trang chủ</Link></li>
-              <li><Link href="/danh-muc-sach" className="hover:underline">Danh mục sách</Link></li>
-              <li><Link href="/ban-sach" className="hover:underline">Bán sách</Link></li>
-              <li><Link href="/ve-chung-toi" className="hover:underline">Về chúng tôi</Link></li>
-              <li><Link href="/blog" className="hover:underline">Blog</Link></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-bold mb-4">Chính sách</h3>
-            <ul className="space-y-2">
-              <li><Link href="/dieu-khoan-su-dung" className="hover:underline">Điều khoản sử dụng</Link></li>
-              <li><Link href="/chinh-sach-bao-mat" className="hover:underline">Chính sách bảo mật</Link></li>
-              <li><Link href="/quy-dinh-giao-dich" className="hover:underline">Quy định giao dịch</Link></li>
-              <li><Link href="/cau-hoi-thuong-gap" className="hover:underline">Câu hỏi thường gặp</Link></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-bold mb-4">Liên hệ</h3>
-            <p className="mb-2">Email: contact@bookexchange.vn</p>
-            <p className="mb-2">Hotline: 0123 456 789</p>
-            <p className="mb-2">Địa chỉ: Đại học Nông Lâm TP.HCM</p>
-            <p>Khu phố 6, P.Linh Trung, Q.Thủ Đức, TP.HCM</p>
-          </div>
-        </div>
-        
-        <div className="container mx-auto px-4 mt-8 pt-8 border-t border-green-700">
-          <p className="text-center text-sm">© 2023 BookExchange. Tất cả quyền được bảo lưu.</p>
-        </div>
-      </footer>
+      )}
     </div>
   );
-} 
+}
