@@ -1,8 +1,14 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import {usePathname} from "next/navigation";
 
 const Footer = () => {
+  const pathname = usePathname();
+
+  const isActive = (path: string) => pathname === path;
   return (
     <footer className="bg-green-800 text-white pt-10 pb-6">
       <div className="max-w-screen-xl mx-auto px-4 md:px-6 lg:px-8">
@@ -49,8 +55,11 @@ const Footer = () => {
             <ul className="space-y-2">
               <li><Link href="/" className="hover:text-green-300">Trang chủ</Link></li>
               <li><Link href="/about" className="hover:text-green-300">Về chúng tôi</Link></li>
-              <li><Link href="/mua-sach" className="hover:text-green-300">Mua sách</Link></li>
-              <li><Link href="/ban-sach" className="hover:text-green-300">Bán sách</Link></li>
+              <li><Link href="/books" className="hover:text-green-300">Mua sách</Link></li>
+              <li><Link
+                  href="/sell-book"
+                  className={`hover:text-green-300 ${isActive('/sell-book') ? 'after:w-full font-semibold' : 'after:w-0'}`}
+              >Bán sách</Link></li>
               <li><Link href="/blog" className="hover:text-green-300">Blog</Link></li>
             </ul>
           </div>
