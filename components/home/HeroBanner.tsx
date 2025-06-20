@@ -6,10 +6,14 @@ import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import { useEffect, useState } from 'react';
-import { slideService } from '@/services/slideService'; // Đường dẫn đúng tùy theo cấu trúc dự án của bạn
+import { slideService } from '@/services/slideService';
+import {usePathname} from "next/navigation"; // Đường dẫn đúng tùy theo cấu trúc dự án của bạn
 
 const HeroBanner = () => {
   const [images, setImages] = useState<string[]>([]);
+  const pathname = usePathname();
+
+  const isActive = (path: string) => pathname === path;
 
   useEffect(() => {
     const fetchSlides = async () => {
@@ -45,12 +49,16 @@ const HeroBanner = () => {
               tiết kiệm chi phí và tạo môi trường học tập bền vững.
             </p>
             <div className="flex space-x-4">
-              <Link href="/ban-sach" className="bg-green-700 hover:bg-green-800 text-white py-2 px-6 rounded-full font-medium transition">
+              <Link
+                  href="/sell-book"
+                  className={`bg-green-700 hover:bg-green-800 text-white py-2 px-6 rounded-full font-medium transition ${isActive('/sell-book') ? 'after:w-full font-semibold' : 'after:w-0'}`}
+              >
                 Đăng bán sách
               </Link>
-              <Link href="/mua-sach" className="border border-green-700 text-green-700 hover:bg-green-50 py-2 px-6 rounded-full font-medium transition">
+              <Link href="/books" className="border border-green-700 text-green-700 hover:bg-green-50 py-2 px-6 rounded-full font-medium transition">
                 Tìm sách
               </Link>
+
             </div>
           </div>
 
