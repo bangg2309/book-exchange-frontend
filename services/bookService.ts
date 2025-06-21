@@ -583,5 +583,17 @@ export const bookService = {
       return [];
     }
   },
+
+  getPendingBooks: async (page: number = 0, size: number = 5): Promise<ApiResponse<any>> => {
+    try {
+      const response = await apiService.get<ApiResponse<any>>(`/listed-books/pending?page=${page}&size=${size}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching pending books:', error);
+      toastService.error('Không thể tải sách cần duyệt');
+      throw error;
+    }
+  }
+
 };
 

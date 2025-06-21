@@ -6,6 +6,8 @@ import { Book } from '@/types/book';
 import { Author } from '@/types/author';
 import { Edit, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 // import BookFormModal from './components/BookFormModal';
+import BookApprovalPanel from './components/BookApprovalPanel';
+
 
 export default function BookPage() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -87,6 +89,7 @@ export default function BookPage() {
       <div className="space-y-6 p-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quản lý sách</h1>
+          <BookApprovalPanel />
           <button
               onClick={handleCreateBook}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
