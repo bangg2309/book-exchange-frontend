@@ -102,6 +102,18 @@ export const apiService = {
   },
 
   /**
+   * Make a PATCH request
+   */
+  patch: async <T>(url: string, data?: any): Promise<T> => {
+    try {
+      const response: AxiosResponse<T> = await api.patch<T>(url, data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Make a DELETE request
    */
   delete: async <T>(url: string): Promise<T> => {

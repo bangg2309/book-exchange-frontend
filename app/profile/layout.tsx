@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaUser, FaMapMarkerAlt, FaInfoCircle, FaShoppingBag, FaStore, FaEdit, FaStar } from 'react-icons/fa';
+import { FaUser, FaMapMarkerAlt, FaInfoCircle, FaShoppingBag, FaStore, FaEdit, FaStar, FaBook } from 'react-icons/fa';
 import { authService } from '@/services/authService';
 import { userService } from '@/services/userService';
 import { User } from '@/types/user';
@@ -86,26 +86,6 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
                     </div>
                     <div>
                       <h2 className="font-bold">{getDisplayName(user)}</h2>
-                      <div className="flex items-center text-sm text-gray-500 mt-1">
-                        <FaEdit className="mr-1 text-xs" />
-                        <Link href="/profile" className="hover:text-green-700">Sửa hồ sơ</Link>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* User stats */}
-                  <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                    <div>
-                      <div className="text-green-700 font-bold">0</div>
-                      <div className="text-xs text-gray-500">Sách bán</div>
-                    </div>
-                    <div>
-                      <div className="text-green-700 font-bold">{getAverageRating()}</div>
-                      <div className="text-xs text-gray-500">Đánh giá</div>
-                    </div>
-                    <div>
-                      <div className="text-green-700 font-bold">0</div>
-                      <div className="text-xs text-gray-500">Đơn mua</div>
                     </div>
                   </div>
                 </>
@@ -158,6 +138,13 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
                 >
                   <FaStore className={isActive('/profile/sell-orders') ? 'text-green-700' : 'text-gray-400'} />
                   <span>Đơn bán</span>
+                </Link>
+                <Link
+                  href="/profile/listed-books"
+                  className={`w-full text-left flex items-center gap-3 p-4 hover:bg-green-50 hover:text-green-700 ${isActive('/profile/listed-books') ? 'bg-green-50 text-green-700' : ''}`}
+                >
+                  <FaBook className={isActive('/profile/listed-books') ? 'text-green-700' : 'text-gray-400'} />
+                  <span>Sách đã đăng bán</span>
                 </Link>
               </div>
             </div>
