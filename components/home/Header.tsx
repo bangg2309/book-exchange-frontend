@@ -164,10 +164,10 @@ const Header = () => {
                     <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Tài khoản của tôi
                     </Link>
-                    <Link href="/my-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <Link href="/profile/buy-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Đơn mua
                     </Link>
-                    <Link href="/my-listings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <Link href="/profile/sell-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Sách đang bán
                     </Link>
                     <div className="border-t border-gray-100"></div>
@@ -296,7 +296,7 @@ const Header = () => {
                     Tài khoản của tôi
                   </Link>
                   <Link 
-                    href="/my-orders" 
+                    href="/profile/buy-orders" 
                     className="text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -305,7 +305,7 @@ const Header = () => {
                     Đơn mua
                   </Link>
                   <Link 
-                    href="/my-listings" 
+                    href="/profile/sell-orders" 
                     className="text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
