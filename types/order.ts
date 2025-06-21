@@ -90,6 +90,12 @@ export interface OrderItemResponse {
   status: number;
   bookItems: OrderBookItemResponse[];
   createdAt: string;
+  updatedAt: string;
+  paymentMethod?: string;
+  shippingAddress?: string;
+  buyerName?: string;
+  buyerPhone?: string;
+  discount?: number;
 }
 
 export interface OrderResponse {

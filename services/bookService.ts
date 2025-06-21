@@ -330,6 +330,18 @@ export const bookService = {
     }
   },
 
+  // Get listed books by user ID
+  getListedBooksByUser: async (userId?: number): Promise<ApiResponse<any>> => {
+    try {
+      const response = await apiService.get<ApiResponse<any>>(`/listed-books/user/me`);
+      return response;
+    } catch (error) {
+      console.error('Error getting user listed books:', error);
+      toastService.error('Không thể tải danh sách sách đã đăng bán. Vui lòng thử lại sau.');
+      throw error;
+    }
+  },
+
   // Get all books with pagination
   getBooks: async (page: number = 0, size: number = 10): Promise<BookResponse> => {
     try {
