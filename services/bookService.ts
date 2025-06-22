@@ -18,6 +18,7 @@ const API_ROUTES = {
   LISTED_BOOKS: '/listed-books',
   LISTED_BOOK_BY_ID: (id: string) => `/listed-books/${id}`,
   LATEST_BOOKS: '/listed-books/latest',
+  LISTED_BOOKS_SEARCH: '/listed-books/search',
   RELATED_BOOKS: (id: string) => `/listed-books/${id}/related`,
 };
 
@@ -378,6 +379,20 @@ export const bookService = {
       return response.data;
     } catch (error) {
       console.error('Error searching books:', error);
+      toastService.error('Tìm kiếm thất bại. Vui lòng thử lại sau.');
+      throw error;
+    }
+  },
+
+  // Search listed books
+  searchListedBooks: async (query: string, page: number = 0, size: number = 10): Promise<ApiResponse<any>> => {
+    try {
+      const response = await apiService.get<ApiResponse<any>>(API_ROUTES.LISTED_BOOKS_SEARCH, {
+        params: { query, page, size }
+      });
+      return response;
+    } catch (error) {
+      console.error('Error searching listed books:', error);
       toastService.error('Tìm kiếm thất bại. Vui lòng thử lại sau.');
       throw error;
     }
