@@ -36,9 +36,9 @@ export const authorService = {
 
   async searchAuthors(query: string): Promise<Author[]> {
     try {
-      const authors = await this.getAuthors();
+      const authorsPage = await this.getAuthors();
       const normalizedQuery = query.toLowerCase().trim();
-      return authors.filter((author) =>
+      return authorsPage.content.filter((author) =>
           author.name.toLowerCase().includes(normalizedQuery)
       );
     } catch (error) {

@@ -160,8 +160,9 @@ const OrderStatusTimeline = ({ status }: { status: number }) => {
   );
 };
 
-export default function OrderItemDetailPage({ params }: { params: { id: string } }) {
+export default function OrderItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { id } = React.use(params);
   const [orderItem, setOrderItem] = useState<OrderItemResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -196,7 +197,7 @@ export default function OrderItemDetailPage({ params }: { params: { id: string }
         }
         
         // Fetch order item data from API
-        const orderItemId = parseInt(params.id);
+        const orderItemId = parseInt(id);
         const orderItemData = await orderService.getOrderItemById(orderItemId);
         
         if (orderItemData) {
@@ -213,7 +214,7 @@ export default function OrderItemDetailPage({ params }: { params: { id: string }
     };
     
     fetchOrderItem();
-  }, [params.id, router]);
+  }, [id, router]);
 
   // Check if reviews exist for each book in the order
   useEffect(() => {
@@ -250,7 +251,7 @@ export default function OrderItemDetailPage({ params }: { params: { id: string }
   // Handle order status update (e.g., cancel order or confirm receipt)
   const handleUpdateStatus = async (newStatus: number) => {
     try {
-      const updatedOrderItem = await orderService.updateOrderItemStatus(parseInt(params.id), newStatus);
+      const updatedOrderItem = await orderService.updateOrderItemStatus(parseInt(id), newStatus);
       if (updatedOrderItem) {
         // Show appropriate message based on status
         if (newStatus === ORDER_ITEM_CANCELLED) {

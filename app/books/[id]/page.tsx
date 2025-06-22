@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -52,10 +53,9 @@ interface BookDetail {
   [key: string]: any;
 }
 
-export default function BookDetailPage() {
-  const params = useParams();
+export default function BookDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const bookId = params.id as string;
+  const { id } = React.use(params);
   const [book, setBook] = useState<BookDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -76,7 +76,7 @@ export default function BookDetailPage() {
       try {
         setLoading(true);
         
-        const response = await bookService.getListedBookById(bookId);
+        const response = await bookService.getListedBookById(id);
         if (response && response.code === 1000 && response.result) {
           const bookData = response.result;
           setBook(bookData as BookDetail);
@@ -87,7 +87,7 @@ export default function BookDetailPage() {
           }
           
           // Fetch related books
-          fetchRelatedBooks(bookId);
+          fetchRelatedBooks(id);
           
           // Use images from API
           const bookImages = bookData.images || [];
@@ -106,7 +106,7 @@ export default function BookDetailPage() {
     };
     
     fetchBookDetails();
-  }, [bookId]);
+  }, [id]);
 
   // Fetch seller reviews
   const fetchSellerReviews = async (sellerId: number) => {

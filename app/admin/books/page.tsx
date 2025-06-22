@@ -146,7 +146,7 @@ export default function BookPage() {
                       <td className="px-4 py-2 text-sm">{book.price} ₫</td>
                       {/*<td className="px-4 py-2 text-sm">{book.conditionNumber}/5</td>*/}
                       <td className="px-4 py-2 text-sm">{book.name}</td>
-                      <td className="px-4 py-2 text-sm">{book.school}</td>
+                      <td className="px-4 py-2 text-sm">{book.school?.name || book.school?.toString() || ''}</td>
 
 
                       {/*<td className="px-4 py-2 text-sm">{book.fullName}</td>*/}

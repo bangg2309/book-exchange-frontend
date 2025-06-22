@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/home/Header';
@@ -19,7 +19,7 @@ interface ExtendedBook extends Book {
   sellerId?: string;
 }
 
-export default function BooksPage() {
+function BooksContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [books, setBooks] = useState<ExtendedBook[]>([]);
@@ -680,5 +680,22 @@ export default function BooksPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function BooksPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header />
+        <div className="flex-grow flex justify-center items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+          <span className="ml-3 text-gray-600">Đang tải...</span>
+        </div>
+        <Footer />
+      </div>
+    }>
+      <BooksContent />
+    </Suspense>
   );
 } 

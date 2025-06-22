@@ -87,8 +87,9 @@ const OrderStatusBadge = ({ status }: { status: number }) => {
   );
 };
 
-export default function SellOrderDetailPage({ params }: { params: { id: string } }) {
+export default function SellOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { id } = React.use(params);
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -111,25 +112,25 @@ export default function SellOrderDetailPage({ params }: { params: { id: string }
   useEffect(() => {
     const fetchOrderDetails = async () => {
       try {
-        // Đảm bảo params.id là một chuỗi hợp lệ
-        if (!params || !params.id) {
-          console.error('[DEBUG] Invalid params:', params);
+        // Đảm bảo id là một chuỗi hợp lệ
+        if (!id) {
+          console.error('[DEBUG] Invalid id:', id);
           setError("ID đơn hàng không hợp lệ");
           setIsLoading(false);
           return;
         }
         
-        const id = parseInt(params.id, 10);
-        if (isNaN(id)) {
-          console.error('[DEBUG] Invalid order ID:', params.id);
+        const orderId = parseInt(id, 10);
+        if (isNaN(orderId)) {
+          console.error('[DEBUG] Invalid order ID:', id);
           setError("ID đơn hàng không hợp lệ");
           setIsLoading(false);
           return;
         }
         
-        setOrderId(id);
+        setOrderId(orderId);
         setIsLoading(true);
-        console.log('[DEBUG] Fetching order details for ID:', id);
+        console.log('[DEBUG] Fetching order details for ID:', orderId);
         
         // Thử lấy danh sách tất cả đơn bán và lọc ra đơn hàng cần xem
         try {
@@ -140,7 +141,7 @@ export default function SellOrderDetailPage({ params }: { params: { id: string }
             console.log('[DEBUG] Got sellers orders:', sellersOrdersResponse.result.length);
             
             // Tìm đơn hàng theo ID
-            const orderDetail = sellersOrdersResponse.result.find(order => order.id === id);
+            const orderDetail = sellersOrdersResponse.result.find(order => order.id === orderId);
             
             if (orderDetail) {
               console.log('[DEBUG] Found matching order:', orderDetail);
@@ -165,7 +166,7 @@ export default function SellOrderDetailPage({ params }: { params: { id: string }
         // Nếu không tìm thấy trong danh sách đơn bán, thử gọi API trực tiếp
         try {
           const token = authService.getToken();
-          const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081'}/orders/${id}`;
+          const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081'}/orders/${orderId}`;
           
           console.log('[DEBUG] API URL:', apiUrl);
           console.log('[DEBUG] Token exists:', !!token);
@@ -205,7 +206,7 @@ export default function SellOrderDetailPage({ params }: { params: { id: string }
     };
     
     fetchOrderDetails();
-  }, [params]);
+  }, [id]);
   
   const handleUpdateStatus = async (orderItemId: number, newStatus: number) => {
     try {
