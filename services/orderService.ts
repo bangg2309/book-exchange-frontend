@@ -4,7 +4,7 @@ import { apiService } from './api';
 import { toastService } from './toastService';
 import { authService } from './authService';
 import { ApiResponse } from '@/types/apiResponse';
-import { OrderCreationRequest, OrderResponse, OrderItemResponse } from '@/types/order';
+import { OrderCreationRequest, OrderResponse, OrderItemResponse, RevenueStatsResponse } from '@/types/order';
 import axios, { AxiosError } from 'axios';
 import { API_BASE_URL } from './api';
 
@@ -26,6 +26,7 @@ const API_ROUTES = {
   ADMIN_GET_ALL_ORDERS: '/orders/admin',
   ADMIN_UPDATE_ORDER_STATUS: (orderId: number, status: number) => `/orders/admin/${orderId}/status/${status}`,
   ADMIN_DELETE_ORDER: (orderId: number) => `/orders/admin/${orderId}`,
+  DASHBOARD: '/dashboard',
 };
 
 export const orderService = {
@@ -465,6 +466,36 @@ export const orderService = {
         toastService.error('Không thể xóa đơn hàng');
       }
       return { code: 1001, message: 'Lỗi khi xóa đơn hàng', result: false };
+    }
+  },
+
+  /**
+   * Admin: Lấy thống kê doanh thu theo khoảng thời gian
+   */
+  adminGetRevenueStats: async (period: string = 'day'): Promise<ApiResponse<RevenueStatsResponse | null>> => {
+    try {
+      if (!authService.isAuthenticated() || !authService.isAdmin()) {
+        toastService.error('Bạn không có quyền thực hiện thao tác này');
+        return { code: 1001, message: 'Không có quyền truy cập', result: null };
+      }
+      
+      console.log('[DEBUG] Calling adminGetRevenueStats API', period);
+      const response = await apiService.get<ApiResponse<RevenueStatsResponse>>(
+        `${API_ROUTES.DASHBOARD}/stats/revenue?period=${period}`
+      );
+      console.log('[DEBUG] adminGetRevenueStats response:', response);
+      
+      return response;
+    } catch (error) {
+      console.error('[DEBUG] Error in adminGetRevenueStats:', error);
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<any>;
+        console.log('[DEBUG] Error response data:', axiosError.response?.data);
+        toastService.error(axiosError.response?.data?.message || 'Không thể lấy dữ liệu thống kê doanh thu');
+      } else {
+        toastService.error('Không thể lấy dữ liệu thống kê doanh thu');
+      }
+      return { code: 1001, message: 'Lỗi khi lấy thống kê doanh thu', result: null };
     }
   },
 }; 
