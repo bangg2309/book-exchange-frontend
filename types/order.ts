@@ -130,8 +130,14 @@ export enum OrderStatus {
 
 export enum PaymentOrderStatus {
   PAYMENT_ORDER_FAILED = -1,
-  PAYMENT_ORDER_PENDING = 0,
-  PAYMENT_ORDER_SUCCESS = 1,
-  PAYMENT_ORDER_CANCELED = 2,
-  PAYMENT_ORDER_REFUNDED = 3
+  PAYMENT_ORDER_PENDING = 1,
+  PAYMENT_ORDER_SUCCESS = 2,
+  PAYMENT_ORDER_CANCELED = 3,
+  PAYMENT_ORDER_REFUNDED = 4,
+}
+
+export interface RevenueStatsResponse {
+  labels: string[]; // Nhãn thời gian (ngày, tuần, tháng, năm)
+  data: number[]; // Dữ liệu doanh thu (đơn vị: nghìn đồng)
+  period: string; // Khoảng thời gian (day, week, month, year)
 }

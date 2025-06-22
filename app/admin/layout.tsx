@@ -60,12 +60,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'Bảng Điều Khiển', href: '/admin', icon: LayoutDashboard },
     { name: 'Quản Lý Sách', href: '/admin/books', icon: BookOpen },
-    { name: 'Danh Mục Sách', href: '/admin/categories', icon: Tag },
-    { name: 'Đơn Hàng', href: '/admin/orders', icon: ShoppingCart },
-    { name: 'Người Dùng', href: '/admin/users', icon: Users },
-    { name: 'Quản lý Tác giả', href: '/admin/authors', icon: PenLine },
-    { name: 'Quản lý Slider', href: '/admin/slides', icon: SlidersIcon },
-    { name: 'Cài Đặt', href: '/admin/settings', icon: Settings },
+    { name: 'Quản Lý Danh Mục', href: '/admin/categories', icon: Tag },
+    { name: 'Quản Lý Đơn Hàng', href: '/admin/orders', icon: ShoppingCart },
+    { name: 'Quản Lý Người Dùng', href: '/admin/users', icon: Users },
+    { name: 'Quản Lý Tác Giả', href: '/admin/authors', icon: PenLine },
+    { name: 'Quản Lý Slider', href: '/admin/slides', icon: SlidersIcon },
   ];
 
   const isActive = (path: string) => {
