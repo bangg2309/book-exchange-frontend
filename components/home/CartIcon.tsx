@@ -37,7 +37,7 @@ const CartIcon: React.FC = () => {
   }, []);
 
   return (
-    <Link href="/cart" className="relative group">
+    <Link href="/cart" className="relative group ml-4">
       <div className="p-2 rounded-full bg-white/10 backdrop-blur-sm transition-all duration-300 group-hover:bg-white/20">
         <FaShoppingCart className="text-xl text-white group-hover:text-green-200 transition-colors" />
       </div>

@@ -115,12 +115,12 @@ const BookCard: React.FC<BookCardProps> = ({ book }) => {
           </p>
           
           <Link href={`/books/${book.id}`}>
-            <h3 className="font-medium text-gray-900 line-clamp-2 hover:text-green-700 h-10 transition-colors">
+            <h3 className="font-medium text-gray-900 line-clamp-2 hover:text-green-700 h-12 transition-colors">
               {book.title}
             </h3>
           </Link>
           
-          <p className="text-gray-600 text-sm line-clamp-1 -mt-1">
+          <p className="text-gray-600 text-sm line-clamp-1 mt-3">
             {book.author ? book.author : 'Chưa cập nhật tác giả'}
           </p>
         </div>

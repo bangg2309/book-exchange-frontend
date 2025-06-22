@@ -125,7 +125,8 @@ const Header = () => {
                     </nav>
 
                     {/* User Actions */}
-                    <div className="flex items-center space-x-4">
+
+                    <div className="flex items-center space-x-2">
                         <CartIcon/>
 
                         {/* Conditionally render login/register or user menu */}

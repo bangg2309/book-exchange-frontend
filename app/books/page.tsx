@@ -9,7 +9,7 @@ import BookCard from '@/components/shared/BookCard';
 import { Book, BookFilterParams, bookService } from '@/services/bookService';
 import BookFilters from '@/components/books/BookFilters';
 import { FaSearch, FaFilter, FaSort, FaArrowUp, FaArrowDown, FaTimes, FaBookOpen, 
-  FaMapMarkerAlt, FaUniversity, FaTags, FaListUl, FaThLarge, FaChevronRight, FaBook, FaSchool } from 'react-icons/fa';
+  FaMapMarkerAlt, FaUniversity, FaTags, FaChevronRight, FaBook, FaSchool } from 'react-icons/fa';
 import Pagination from '@/components/shared/Pagination';
 
 // Extend Book type to avoid TypeScript errors
@@ -27,7 +27,6 @@ export default function BooksPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState<'grid' | 'list'>('grid');
   const [paramsProcessed, setParamsProcessed] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -324,21 +323,6 @@ export default function BooksPage() {
           </button>
           
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setActiveView('grid')}
-              className={`p-2 rounded-lg ${activeView === 'grid' ? 'bg-slate-200 text-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
-              aria-label="Grid view"
-            >
-              <FaThLarge size={16} />
-            </button>
-            <button
-              onClick={() => setActiveView('list')}
-              className={`p-2 rounded-lg ${activeView === 'list' ? 'bg-slate-200 text-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
-              aria-label="List view"
-            >
-              <FaListUl size={16} />
-            </button>
-            
             <div className="relative">
               <button
                 onClick={toggleSortDirection}
@@ -407,23 +391,6 @@ export default function BooksPage() {
             {/* Results info and sorting - Desktop */}
             <div className="hidden lg:flex justify-between items-center mb-6 bg-white rounded-xl shadow-sm border border-slate-200 p-4">
               <div className="flex items-center space-x-3">
-                <div className="border-r border-slate-200 pr-3 flex items-center">
-                  <button
-                    onClick={() => setActiveView('grid')}
-                    className={`p-2 rounded-lg ${activeView === 'grid' ? 'bg-green-50 text-green-600' : 'text-slate-500 hover:bg-slate-100'}`}
-                    aria-label="Grid view"
-                  >
-                    <FaThLarge size={16} />
-                  </button>
-                  <button
-                    onClick={() => setActiveView('list')}
-                    className={`p-2 rounded-lg ml-1 ${activeView === 'list' ? 'bg-green-50 text-green-600' : 'text-slate-500 hover:bg-slate-100'}`}
-                    aria-label="List view"
-                  >
-                    <FaListUl size={16} />
-                  </button>
-                </div>
-                
                 <div className="text-sm text-slate-500">Sắp xếp theo:</div>
                 <div className="relative">
                   <select
@@ -469,85 +436,14 @@ export default function BooksPage() {
               </div>
             ) : books.length > 0 ? (
               <>
-                {activeView === 'grid' ? (
-                  // Grid View
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {books.map((book) => (
-                      <div key={book.id} className="animate-fade-in">
-                        <BookCard book={book} />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  // List View
-                  <div className="space-y-4">
-                    {books.map((book) => (
-                      <div 
-                        key={book.id}
-                        className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300 overflow-hidden animate-fade-in"
-                      >
-                        <div className="flex flex-col sm:flex-row">
-                          <div className="sm:w-48 h-48 sm:h-auto bg-slate-100 flex items-center justify-center flex-shrink-0 p-4">
-                            <div className="w-28 h-36 bg-white rounded shadow-sm flex items-center justify-center">
-                              <FaBookOpen className="text-slate-300" size={32} />
-                            </div>
-                          </div>
-                          
-                          <div className="p-5 flex-grow">
-                            <div className="flex flex-col h-full">
-                              <div>
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="text-sm text-slate-500">
-                                    {book.category?.name || 'Chưa phân loại'}
-                                  </div>
-                                  {book.condition && (
-                                    <div className="bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-medium">
-                                      {book.condition}
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                <h3 className="font-semibold text-lg text-slate-800 mb-2">
-                                  <Link href={`/books/${book.id}`} className="hover:text-green-600 transition-colors line-clamp-1">
-                                    {book.title}
-                                  </Link>
-                                </h3>
-                                
-                                <p className="text-slate-600 text-sm mb-3 line-clamp-2">
-                                  {book.description || 'Không có mô tả chi tiết.'}
-                                </p>
-                              </div>
-                              
-                              <div className="mt-auto">
-                                <div className="flex items-center justify-between flex-wrap gap-2">
-                                  <div className="font-bold text-xl text-green-600">
-                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(book.price)}
-                                  </div>
-                                  
-                                  <div className="flex space-x-2">
-                                    <Link 
-                                      href={`/books/${book.id}`}
-                                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium flex items-center transition-all"
-                                    >
-                                      Chi tiết
-                                    </Link>
-                                    
-                                    <Link 
-                                      href={`/chat/${book.sellerId || '#'}`}
-                                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all"
-                                    >
-                                      Liên hệ mua
-                                    </Link>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Grid View */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {books.map((book) => (
+                    <div key={book.id} className="animate-fade-in">
+                      <BookCard book={book} />
+                    </div>
+                  ))}
+                </div>
                 
                 {/* Pagination */}
                 <div className="mt-8 flex justify-end items-center">
