@@ -31,9 +31,6 @@ export const cartService = {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError<any>;
-        toastService.error(axiosError.response?.data?.message || 'Không thể tải giỏ hàng');
-      } else {
-        toastService.error('Không thể tải giỏ hàng');
       }
       return [];
     }
