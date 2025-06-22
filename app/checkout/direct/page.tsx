@@ -3,40 +3,46 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FaArrowLeft, FaMapMarkerAlt, FaTruck, FaMoneyBillWave } from 'react-icons/fa';
 import Header from '@/components/home/Header';
 import Footer from '@/components/home/Footer';
 import AddressForm from '@/components/checkout/AddressForm';
 import { toastService } from '@/services/toastService';
-import { CartItemResponse } from "@/types/cart";
-import { cartService } from '@/services/cartService';
 import { AddressType } from '@/types/address';
 import { orderService } from '@/services/orderService';
 import { OrderCreationRequest, OrderItemRequest, OrderBookItemRequest } from '@/types/order';
 import { authService } from '@/services/authService';
-import { useRouter } from 'next/navigation';
 import { shippingAddressService } from '@/services/shippingAddressService';
 import { voucherService } from '@/services/voucherService';
-import { paymentService } from '@/services/paymentService';
 import { PaymentMethod } from '@/types/payment';
+import { paymentService } from '@/services/paymentService';
 
 // Định nghĩa kiểu dữ liệu
 type DeliveryMethod = 'standard' | 'express';
 
-// Interface để nhóm sản phẩm theo người bán
-type SellerGroup = {
+interface DirectCheckoutBook {
+  bookId: number;
+  title: string;
+  price: number;
+  thumbnail: string;
   sellerId: number;
   sellerName: string;
-  items: CartItemResponse[];
+  conditionNumber: number;
+}
+
+interface SellerGroup {
+  sellerId: number;
+  sellerName: string;
   shippingFee: number;
   note: string;
-};
+}
 
-export default function CheckoutPage() {
+export default function DirectCheckoutPage() {
   // State
   const [isLoading, setIsLoading] = useState(true);
-  const [cartItems, setCartItems] = useState<CartItemResponse[]>([]);
-  const [sellerGroups, setSellerGroups] = useState<SellerGroup[]>([]);
+  const [book, setBook] = useState<DirectCheckoutBook | null>(null);
+  const [sellerGroup, setSellerGroup] = useState<SellerGroup | null>(null);
   const [addresses, setAddresses] = useState<AddressType[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('standard');
@@ -49,9 +55,8 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   // Tính toán giá trị đơn hàng
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price, 0);
-  const totalShippingFee = sellerGroups.reduce((sum, group) => sum + group.shippingFee, 0);
-  const shippingFee = deliveryMethod === 'express' ? totalShippingFee * 2 : totalShippingFee;
+  const subtotal = book ? book.price : 0;
+  const shippingFee = sellerGroup ? (deliveryMethod === 'express' ? sellerGroup.shippingFee * 2 : sellerGroup.shippingFee) : 0;
   const total = subtotal + shippingFee - discount;
 
   // Fetch dữ liệu khi component mount
@@ -60,41 +65,51 @@ export default function CheckoutPage() {
       try {
         setIsLoading(true);
         
-        // Fetch giỏ hàng
-        const items = await cartService.getCart();
-        setCartItems(items);
+        // Kiểm tra đăng nhập
+        if (!authService.isAuthenticated()) {
+          toastService.error('Vui lòng đăng nhập để thanh toán');
+          router.push('/login');
+          return;
+        }
         
-        // Nhóm sản phẩm theo người bán
-        const groupedItems: Record<number, SellerGroup> = {};
+        // Lấy thông tin sách từ sessionStorage
+        const storedBook = sessionStorage.getItem('directCheckout');
         
-        items.forEach(item => {
-          const sellerId = item.sellerId || 0;
+        if (!storedBook) {
+          toastService.error('Không tìm thấy thông tin sách để thanh toán');
+          router.push('/books');
+          return;
+        }
+        
+        try {
+          // Parse dữ liệu JSON
+          const bookData = JSON.parse(storedBook) as DirectCheckoutBook;
           
-          if (!groupedItems[sellerId]) {
-            groupedItems[sellerId] = {
-              sellerId,
-              sellerName: item.sellerName || 'Chưa xác định',
-              items: [],
-              shippingFee: 15000,
-              note: ''
-            };
+          setBook(bookData);
+          
+          // Tạo thông tin người bán
+          setSellerGroup({
+            sellerId: bookData.sellerId,
+            sellerName: bookData.sellerName || 'Chưa xác định',
+            shippingFee: 15000, // Phí vận chuyển mặc định
+            note: ''
+          });
+          
+          // Fetch địa chỉ giao hàng
+          const addresses = await shippingAddressService.getAddresses();
+          setAddresses(addresses);
+          
+          // Chọn địa chỉ mặc định nếu có
+          const defaultAddress = addresses.find(addr => addr.defaultAddress);
+          if (defaultAddress) {
+            setSelectedAddress(defaultAddress.id);
+          } else if (addresses.length > 0) {
+            setSelectedAddress(addresses[0].id);
           }
-          
-          groupedItems[sellerId].items.push(item);
-        });
-        
-        setSellerGroups(Object.values(groupedItems));
-        
-        // Fetch địa chỉ giao hàng từ API thay vì dùng mock data
-        const addresses = await shippingAddressService.getAddresses();
-        setAddresses(addresses);
-        
-        // Chọn địa chỉ mặc định nếu có
-        const defaultAddress = addresses.find(addr => addr.defaultAddress);
-        if (defaultAddress) {
-          setSelectedAddress(defaultAddress.id);
-        } else if (addresses.length > 0) {
-          setSelectedAddress(addresses[0].id);
+        } catch (parseError) {
+          console.error('Error parsing book data:', parseError);
+          toastService.error('Dữ liệu sách không hợp lệ');
+          router.push('/books');
         }
       } catch (error) {
         console.error('Error fetching checkout data:', error);
@@ -105,159 +120,148 @@ export default function CheckoutPage() {
     };
 
     fetchData();
-  }, []);
+  }, [router]);
 
-  // Xử lý lưu địa chỉ mới
-  const handleSaveAddress = async (newAddress: AddressType) => {
+  // Xử lý thêm địa chỉ mới
+  const handleAddAddress = async (address: Omit<AddressType, 'id'>) => {
     try {
-      // Gọi API để lưu địa chỉ mới
-      const createdAddress = await shippingAddressService.createAddress(newAddress);
-      
-      if (createdAddress) {
-        // Cập nhật danh sách địa chỉ
-        const updatedAddresses = [...addresses];
-        
-        // Nếu địa chỉ mới là mặc định, cập nhật các địa chỉ khác
-        if (newAddress.defaultAddress) {
-          updatedAddresses.forEach(addr => {
-            addr.defaultAddress = false;
-          });
-        }
-        
-        updatedAddresses.push(createdAddress);
-        setAddresses(updatedAddresses);
-        
-        // Chọn địa chỉ mới
-        setSelectedAddress(createdAddress.id);
-        
-        // Đóng modal
+      const newAddress = await shippingAddressService.createAddress(address);
+      if (newAddress) {
+        setAddresses(prev => [...prev, newAddress]);
+        setSelectedAddress(newAddress.id);
         setShowAddressModal(false);
+        toastService.success('Thêm địa chỉ mới thành công');
       }
     } catch (error) {
-      console.error('Error saving address:', error);
-      toastService.error('Không thể lưu địa chỉ mới');
+      console.error('Error adding address:', error);
+      toastService.error('Không thể thêm địa chỉ mới');
     }
   };
 
-  // Xử lý thay đổi ghi chú cho từng người bán
-  const handleNoteChange = (sellerId: number, note: string) => {
-    setSellerGroups(prev => prev.map(group => 
-      group.sellerId === sellerId ? {...group, note} : group
-    ));
-  };
-
-  // Xử lý áp dụng voucher
+  // Áp dụng mã giảm giá
   const handleApplyVoucher = async () => {
-    if (!voucherCode) {
+    if (!voucherCode.trim()) {
       toastService.error('Vui lòng nhập mã giảm giá');
       return;
     }
     
-    // Gọi API để kiểm tra và tính toán giảm giá
-    const result = await voucherService.validateVoucher(voucherCode, subtotal);
-    
-    if (result && result.valid) {
-      setDiscount(result.discount);
-      toastService.success('Áp dụng mã giảm giá thành công');
+    try {
+      // Giả lập áp dụng mã giảm giá
+      if (voucherCode === 'FIRSTBUY') {
+        const discountAmount = Math.min(total * 0.1, 50000);
+        setDiscount(discountAmount);
+        toastService.success(`Áp dụng mã giảm giá thành công: -${discountAmount.toLocaleString('vi-VN')}đ`);
+      } else {
+        toastService.error('Mã giảm giá không hợp lệ');
+      }
+    } catch (error) {
+      console.error('Error applying voucher:', error);
+      toastService.error('Không thể áp dụng mã giảm giá');
     }
   };
 
-  // Khởi tạo voucher demo khi component mount
-  useEffect(() => {
-    const initializeDemoVoucher = async () => {
-      try {
-        await voucherService.initializeDemoVoucher();
-      } catch (error) {
-        console.error('Error initializing demo voucher:', error);
-      }
-    };
-
-    initializeDemoVoucher();
-  }, []);
-
   // Xử lý đặt hàng
   const handlePlaceOrder = async () => {
+    if (!book || !sellerGroup) {
+      toastService.error('Không có sản phẩm để thanh toán');
+      return;
+    }
+    
     if (!selectedAddress) {
       toastService.error('Vui lòng chọn địa chỉ giao hàng');
       return;
     }
-
-    if (isProcessing) {
-      return;
-    }
-
-    setIsProcessing(true);
-
+    
     try {
-      const userInfo = authService.getCurrentUser();
-      if (!userInfo) {
+      setIsProcessing(true);
+      
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser || !currentUser.id) {
+        toastService.error('Vui lòng đăng nhập để thanh toán');
         router.push('/login');
         return;
       }
-
-      // Tạo danh sách các OrderItem theo người bán
-      const orderItems: OrderItemRequest[] = sellerGroups.map(group => ({
-        sellerId: group.sellerId,
-        shippingFee: deliveryMethod === 'express' ? group.shippingFee * 2 : group.shippingFee,
-        note: group.note,
-        bookItems: group.items.map(item => ({
-          bookId: item.bookId,
-          quantity: 1,
-          price: item.price,
-          subtotal: item.price
-        }))
-      }));
-
-      // Tạo đơn hàng
+      
+      // Tạo đối tượng OrderBookItemRequest
+      const bookItem: OrderBookItemRequest = {
+        bookId: Number(book.bookId),
+        quantity: 1,
+        price: book.price,
+        subtotal: book.price
+      };
+      
+      // Tạo đối tượng OrderItemRequest
+      const orderItem: OrderItemRequest = {
+        sellerId: sellerGroup.sellerId,
+        shippingFee: deliveryMethod === 'express' ? sellerGroup.shippingFee * 2 : sellerGroup.shippingFee,
+        note: note,
+        bookItems: [bookItem]
+      };
+      
+      // Tạo đối tượng OrderCreationRequest
       const orderRequest: OrderCreationRequest = {
-        userId: Number(userInfo.id),
+        userId: Number(currentUser.id),
         shippingAddressId: selectedAddress,
         paymentMethod: paymentMethod,
-        voucherCode: discount > 0 ? voucherCode : undefined,
+        deliveryMethod: deliveryMethod,
+        note: note,
+        voucherCode: voucherCode || undefined,
         shippingFee: shippingFee,
         discount: discount,
         totalPrice: total,
-        items: orderItems,
-        returnUrl: `${window.location.origin}/payment/callback`
+        returnUrl: `${window.location.origin}/payment/callback`,
+        items: [orderItem]
       };
-
-      // Gọi API đặt hàng
-      const orderResponse = await orderService.createOrder(orderRequest);
       
-      // Nếu thanh toán VNPay, chuyển hướng đến trang thanh toán
-      if (paymentMethod === PaymentMethod.VNPAY) {
-        const paymentRequest = {
-          orderId: orderResponse.id,
-          orderInfo: `Thanh toan don hang #${orderResponse.id}`,
-          amount: total,
-          language: 'vn'
-        };
+      // Gọi API để tạo đơn hàng
+      const order = await orderService.createOrder(orderRequest);
+      
+      if (order) {
+        // Xóa thông tin sách trong sessionStorage
+        sessionStorage.removeItem('directCheckout');
         
-        const paymentResponse = await paymentService.createPaymentUrl(paymentRequest);
-        
-        if (paymentResponse && paymentResponse.paymentUrl) {
-          // Chuyển hướng đến trang thanh toán VNPay
-          window.location.href = paymentResponse.paymentUrl;
-          return;
+        // Nếu thanh toán VNPay, chuyển hướng đến trang thanh toán
+        if (paymentMethod === PaymentMethod.VNPAY) {
+          const paymentRequest = {
+            orderId: order.id,
+            orderInfo: `Thanh toan don hang #${order.id}`,
+            amount: total,
+            language: 'vn'
+          };
+          
+          const paymentResponse = await paymentService.createPaymentUrl(paymentRequest);
+          
+          if (paymentResponse && paymentResponse.paymentUrl) {
+            // Chuyển hướng đến trang thanh toán VNPay
+            window.location.href = paymentResponse.paymentUrl;
+            return;
+          }
         }
+        
+        // Hiển thị thông báo thành công
+        toastService.success('Đặt hàng thành công!');
+        
+        // Chuyển hướng đến trang chi tiết đơn hàng
+        router.push(`/profile/buy-orders`);
       }
-      
-      // Nếu là COD hoặc không có URL thanh toán, chuyển hướng đến trang đơn hàng
-      router.push(`/orders/${orderResponse.id}`);
-      toastService.success('Đặt hàng thành công!');
     } catch (error) {
       console.error('Error placing order:', error);
-      toastService.error('Đã có lỗi xảy ra khi đặt hàng. Vui lòng thử lại sau.');
+      toastService.error('Không thể xử lý đơn hàng');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Tìm địa chỉ được chọn
-  const selectedAddressData = selectedAddress
-    ? addresses.find(addr => addr.id === selectedAddress)
-    : null;
+  // Trong hàm render, thêm biến tạm để tránh lỗi TypeScript
+  const shippingFeeDisplay = () => {
+    if (!sellerGroup) return '0';
+    // Sử dụng optional chaining
+    const fee = sellerGroup?.shippingFee;
+    if (typeof fee !== 'number') return '0';
+    return fee.toLocaleString('vi-VN');
+  };
 
+  // Render component
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
@@ -266,11 +270,11 @@ export default function CheckoutPage() {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Thanh toán</h1>
           <Link 
-            href="/cart" 
+            href={`/books/${book?.bookId}`}
             className="flex items-center text-green-600 hover:text-green-800 transition-colors"
           >
             <FaArrowLeft className="mr-2" />
-            <span>Quay lại giỏ hàng</span>
+            <span>Quay lại trang sách</span>
           </Link>
         </div>
 
@@ -278,7 +282,7 @@ export default function CheckoutPage() {
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
           </div>
-        ) : cartItems.length === 0 ? (
+        ) : !book ? (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
             <div className="flex flex-col items-center justify-center py-12">
               <div className="mb-6 p-6 bg-gray-100 rounded-full">
@@ -287,18 +291,18 @@ export default function CheckoutPage() {
                 </svg>
               </div>
               <h2 className="text-2xl font-semibold text-gray-800 mb-4">Không có sản phẩm để thanh toán</h2>
-              <p className="text-gray-500 mb-6">Vui lòng thêm sản phẩm vào giỏ hàng trước khi thanh toán</p>
+              <p className="text-gray-500 mb-6">Vui lòng chọn sản phẩm trước khi thanh toán</p>
               <Link 
-                href="/cart" 
+                href="/books" 
                 className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
-                Quay lại giỏ hàng
+                Xem danh sách sách
               </Link>
             </div>
           </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-8">
-            {/* Thông tin thanh toán */}
+            {/* Left Column - Order Details */}
             <div className="lg:w-2/3">
               {/* Địa chỉ giao hàng */}
               <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -365,90 +369,84 @@ export default function CheckoutPage() {
                 )}
               </div>
               
-              {/* Sản phẩm nhóm theo người bán */}
-              {sellerGroups.map((group, index) => (
-                <div key={group.sellerId} className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-                      <span className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center mr-2 text-sm">
-                        {index + 1}
-                      </span>
-                      {group.sellerName}
-                    </h2>
-                    <div className="text-sm text-gray-500">
-                      {group.items.length} sản phẩm
-                    </div>
-                  </div>
-                  
-                  <ul className="divide-y divide-gray-100">
-                    {group.items.map((item) => (
-                      <li key={item.id} className="py-4 flex">
-                        <div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded flex items-center justify-center overflow-hidden relative mr-4">
-                          {item.thumbnail ? (
-                            <Image
-                              src={item.thumbnail}
-                              alt={item.bookTitle}
-                              fill
-                              className="object-contain"
-                            />
-                          ) : (
-                            <div className="text-gray-400">No image</div>
-                          )}
-                        </div>
-                        
-                        <div className="flex-grow flex flex-col">
-                          <Link href={`/books/${item.bookId}`} className="font-medium text-gray-800 hover:text-green-600 transition-colors line-clamp-2">
-                            {item.bookTitle}
-                          </Link>
-                          <div className="text-sm mt-1">
-                            Tình trạng: <span className="font-medium">{item.conditionNumber}/5</span>
-                          </div>
-                        </div>
-                        
-                        <div className="ml-4 text-right">
-                          <div className="text-lg font-bold text-green-700">
-                            {item.price.toLocaleString('vi-VN')}đ
-                          </div>
-                          <div className="text-sm text-gray-500">x1</div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  {/* Phương thức giao hàng cho từng người bán */}
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="flex items-center mb-3">
-                      <FaTruck className="text-green-600 mr-2" />
-                      <h3 className="font-medium text-gray-800">Phương thức giao hàng</h3>
+              {/* Sản phẩm thanh toán */}
+              <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800">Sản phẩm thanh toán</h2>
+                </div>
+                
+                <ul className="divide-y divide-gray-100">
+                  <li className="py-4 flex">
+                    <div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded flex items-center justify-center overflow-hidden relative mr-4">
+                      {book.thumbnail ? (
+                        <Image
+                          src={book.thumbnail}
+                          alt={book.title}
+                          fill
+                          className="object-contain"
+                        />
+                      ) : (
+                        <div className="text-gray-400">No image</div>
+                      )}
                     </div>
                     
-                    <div className={`border rounded-lg p-3 ${deliveryMethod === 'standard' ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="font-medium text-sm">
-                            {deliveryMethod === 'standard' ? 'Giao hàng tiêu chuẩn (3-5 ngày)' : 'Giao hàng nhanh (1-2 ngày)'}
-                          </div>
+                    <div className="flex-grow flex flex-col">
+                      <Link href={`/books/${book.bookId}`} className="font-medium text-gray-800 hover:text-green-600 transition-colors line-clamp-2">
+                        {book.title}
+                      </Link>
+                      <div className="text-sm mt-1">
+                        Tình trạng: <span className="font-medium">{book.conditionNumber}/5</span>
+                      </div>
+                      <div className="text-sm mt-1">
+                        Người bán: <span className="font-medium">{book.sellerName || 'Không xác định'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="ml-4 text-right">
+                      <div className="text-lg font-bold text-green-700">
+                        {book.price.toLocaleString('vi-VN')}đ
+                      </div>
+                      <div className="text-sm text-gray-500">x1</div>
+                    </div>
+                  </li>
+                </ul>
+                
+                {/* Phương thức giao hàng */}
+                <div className="mt-6 border-t pt-4">
+                  <div className="flex items-center mb-3">
+                    <FaTruck className="text-green-600 mr-2" />
+                    <h3 className="font-medium text-gray-800">Phương thức giao hàng</h3>
+                  </div>
+                  
+                  <div className={`border rounded-lg p-3 ${deliveryMethod === 'standard' ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium text-sm">
+                          {deliveryMethod === 'standard' ? 'Giao hàng tiêu chuẩn (3-5 ngày)' : 'Giao hàng nhanh (1-2 ngày)'}
                         </div>
-                        <div className="font-medium text-green-700">
-                          {(deliveryMethod === 'standard' ? group.shippingFee : group.shippingFee * 2).toLocaleString('vi-VN')}đ
-                        </div>
+                      </div>
+                      <div className="font-medium text-green-700">
+                        {(deliveryMethod === 'standard' 
+                          ? (sellerGroup && sellerGroup.shippingFee ? sellerGroup.shippingFee : 0) 
+                          : (sellerGroup && sellerGroup.shippingFee ? sellerGroup.shippingFee * 2 : 0)
+                        ).toLocaleString('vi-VN')}đ
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Ghi chú cho từng người bán */}
-                  <div className="mt-4 pt-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú cho shop</label>
-                    <textarea
-                      className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                      rows={2}
-                      placeholder="Nhập ghi chú cho người bán này"
-                      value={group.note}
-                      onChange={(e) => handleNoteChange(group.sellerId, e.target.value)}
-                    />
-                  </div>
                 </div>
-              ))}
+                
+                {/* Ghi chú */}
+                <div className="mt-6 border-t pt-4">
+                  <h3 className="font-medium text-gray-800 mb-3">Ghi chú</h3>
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    placeholder="Nhập ghi chú cho người bán (nếu có)"
+                    rows={3}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  ></textarea>
+                </div>
+              </div>
               
               {/* Phương thức thanh toán */}
               <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -519,7 +517,7 @@ export default function CheckoutPage() {
               </div>
             </div>
             
-            {/* Tổng thanh toán */}
+            {/* Right Column - Order Summary */}
             <div className="lg:w-1/3">
               <div className="bg-white rounded-lg shadow-sm p-6 sticky top-20">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Tổng thanh toán</h2>
@@ -545,28 +543,28 @@ export default function CheckoutPage() {
                   </p>
                 </div>
                 
-                <div className="space-y-3 mb-6">
+                <div className="border-t border-gray-100 pt-4 space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tạm tính ({cartItems.length} sản phẩm)</span>
+                    <span className="text-gray-600">Tạm tính:</span>
                     <span className="font-medium">{subtotal.toLocaleString('vi-VN')}đ</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Phí vận chuyển ({sellerGroups.length} shop)</span>
+                    <span className="text-gray-600">Phí vận chuyển:</span>
                     <span className="font-medium">{shippingFee.toLocaleString('vi-VN')}đ</span>
                   </div>
                   {discount > 0 && (
-                    <div className="flex justify-between text-red-600">
-                      <span>Giảm giá</span>
+                    <div className="flex justify-between text-green-600">
+                      <span>Giảm giá:</span>
                       <span className="font-medium">-{discount.toLocaleString('vi-VN')}đ</span>
                     </div>
                   )}
-                  <div className="pt-3 border-t border-gray-100 flex justify-between">
-                    <span className="font-semibold">Tổng thanh toán</span>
-                    <span className="font-bold text-green-700 text-2xl">{total.toLocaleString('vi-VN')}đ</span>
+                  <div className="flex justify-between text-lg font-bold pt-3 border-t border-gray-100">
+                    <span>Tổng cộng:</span>
+                    <span className="text-green-700">{total.toLocaleString('vi-VN')}đ</span>
                   </div>
                 </div>
-
-                <div className="space-y-4">
+                
+                <div className="space-y-4 mt-6">
                   <button 
                     onClick={handlePlaceOrder}
                     className="w-full py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
@@ -580,7 +578,7 @@ export default function CheckoutPage() {
                     ) : (
                       <>
                         <FaMoneyBillWave className="mr-2" />
-                        <span className="font-medium">Đặt hàng ({sellerGroups.length} shop)</span>
+                        <span className="font-medium">Đặt hàng</span>
                       </>
                     )}
                   </button>
@@ -607,14 +605,17 @@ export default function CheckoutPage() {
       </main>
 
       <Footer />
-
-      {/* Modal thêm địa chỉ mới */}
+      
+      {/* Modal thêm địa chỉ */}
       {showAddressModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <AddressForm 
-            onSaveAddress={handleSaveAddress}
-            onClose={() => setShowAddressModal(false)}
-          />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Thêm địa chỉ mới</h2>
+            <AddressForm 
+              onSaveAddress={handleAddAddress}
+              onClose={() => setShowAddressModal(false)}
+            />
+          </div>
         </div>
       )}
     </div>

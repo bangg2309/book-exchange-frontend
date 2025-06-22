@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/home/Header';
@@ -13,6 +13,9 @@ import { Book } from '@/types/book';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode, Navigation, Thumbs } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
+import { getReviewsBySeller, ReviewResponse } from '@/services/reviewService';
+import BookCard from '@/components/shared/BookCard';
+import { toastService } from '@/services/toastService';
 
 // Import Swiper styles
 import 'swiper/css';
@@ -33,6 +36,7 @@ interface BookDetail {
   conditionDescription?: string;
   pageCount?: string | number;
   sellerName?: string | null;
+  sellerId?: number;
   address?: string | null;
   priceNew: number | null;
   price: number;
@@ -50,6 +54,7 @@ interface BookDetail {
 
 export default function BookDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const bookId = params.id as string;
   const [book, setBook] = useState<BookDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +65,11 @@ export default function BookDetailPage() {
   const [activeTab, setActiveTab] = useState<'description' | 'details' | 'reviews'>('description');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [thumbsSwiper, setThumbsSwiper] = useState<SwiperType | null>(null);
+  const [sellerReviews, setSellerReviews] = useState<ReviewResponse[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [averageRating, setAverageRating] = useState<number>(0);
+  const [relatedBooks, setRelatedBooks] = useState<any[]>([]);
+  const [loadingRelatedBooks, setLoadingRelatedBooks] = useState(false);
 
   useEffect(() => {
     const fetchBookDetails = async () => {
@@ -70,6 +80,14 @@ export default function BookDetailPage() {
         if (response && response.code === 1000 && response.result) {
           const bookData = response.result;
           setBook(bookData as BookDetail);
+          
+          // Fetch seller reviews if seller ID is available
+          if (bookData.sellerId) {
+            fetchSellerReviews(bookData.sellerId);
+          }
+          
+          // Fetch related books
+          fetchRelatedBooks(bookId);
           
           // Use images from API
           const bookImages = bookData.images || [];
@@ -89,6 +107,40 @@ export default function BookDetailPage() {
     
     fetchBookDetails();
   }, [bookId]);
+
+  // Fetch seller reviews
+  const fetchSellerReviews = async (sellerId: number) => {
+    try {
+      setLoadingReviews(true);
+      const reviews = await getReviewsBySeller(sellerId);
+      setSellerReviews(reviews);
+      
+      // Calculate average rating
+      if (reviews && reviews.length > 0) {
+        const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+        setAverageRating(parseFloat((totalRating / reviews.length).toFixed(1)));
+      }
+    } catch (error) {
+      console.error('Error fetching seller reviews:', error);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  // Fetch related books
+  const fetchRelatedBooks = async (bookId: string | number) => {
+    try {
+      setLoadingRelatedBooks(true);
+      const response = await bookService.getRelatedBooks(bookId);
+      if (response && response.result) {
+        setRelatedBooks(response.result);
+      }
+    } catch (error) {
+      console.error('Error fetching related books:', error);
+    } finally {
+      setLoadingRelatedBooks(false);
+    }
+  };
 
   // Convert condition number to readable text
   const getConditionText = (conditionNumber: number) => {
@@ -125,6 +177,83 @@ export default function BookDetailPage() {
     }).format(date);
   };
 
+  // Render reviews tab
+  const renderReviewsTab = () => {
+    if (loadingReviews) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-700"></div>
+          <span className="ml-3 text-gray-600">Đang tải đánh giá...</span>
+        </div>
+      );
+    }
+    
+    if (sellerReviews.length === 0) {
+      return (
+        <div className="bg-gray-50 rounded-lg p-8 text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <h4 className="text-lg font-medium text-gray-600 mb-2">Chưa có đánh giá nào</h4>
+          <p className="text-gray-500">Người bán này chưa nhận được đánh giá từ người mua. Hãy là người đầu tiên mua sách và đánh giá!</p>
+        </div>
+      );
+    }
+    
+    return (
+      <>
+        <div className="flex items-center mb-6">
+          <div className="flex items-center">
+            {[...Array(5)].map((_, i) => (
+              <svg key={i} xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${i < Math.round(averageRating) ? 'text-yellow-400' : 'text-gray-300'}`} viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+            ))}
+          </div>
+          <span className="ml-2 text-xl font-medium text-gray-700">{averageRating}</span>
+          <span className="ml-2 text-gray-500">({sellerReviews.length} đánh giá)</span>
+        </div>
+
+        {/* Hiển thị các đánh giá từ API */}
+        <div className="space-y-6">
+          {sellerReviews.map((review, index) => (
+            <div key={index} className="p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-start">
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4 flex-shrink-0">
+                  <span className="font-medium">{review.reviewer?.substring(0, 2) || 'NN'}</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center mb-2">
+                    <span className="font-medium text-gray-800 mr-2">{review.reviewer || 'Người dùng ẩn danh'}</span>
+                    {/* Hiển thị số sao */}
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`} viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-gray-600">{review.comment}</p>
+                  <p className="text-gray-400 text-sm mt-2">
+                    <span className="font-medium text-gray-500">Sách: {review.bookName}</span> • {review.createdAt ? formatDate(review.createdAt) : ''}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {sellerReviews.length > 5 && (
+            <div className="mt-6 text-center">
+              <button className="text-green-600 hover:text-green-700 font-medium">
+                Xem tất cả đánh giá
+              </button>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  };
 
   // Xử lý thêm vào giỏ hàng
   const handleAddToCart = async () => {
@@ -135,6 +264,63 @@ export default function BookDetailPage() {
         window.dispatchEvent(new Event('cartUpdated'));
       }
     }
+  };
+
+  // Xử lý mua ngay
+  const handleBuyNow = () => {
+    if (book) {
+      try {
+        // Lưu thông tin sách vào sessionStorage
+        const directCheckoutData = {
+          bookId: book.id,
+          title: book.title,
+          price: book.price,
+          thumbnail: book.thumbnail || '',
+          sellerId: book.sellerId || 0,
+          sellerName: book.sellerName || book.fullName || 'Không xác định',
+          conditionNumber: book.conditionNumber || 0
+        };
+        
+        // Lưu vào sessionStorage
+        sessionStorage.setItem('directCheckout', JSON.stringify(directCheckoutData));
+        
+        // Chuyển hướng đến trang thanh toán trực tiếp
+        router.push('/checkout/direct');
+      } catch (error) {
+        console.error('Error redirecting to checkout:', error);
+        toastService.error('Không thể chuyển đến trang thanh toán');
+      }
+    }
+  };
+
+  // Cập nhật phần hiển thị sách liên quan
+  const renderRelatedBooks = () => {
+    if (loadingRelatedBooks) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-700"></div>
+          <span className="ml-3 text-gray-600">Đang tải sách liên quan...</span>
+        </div>
+      );
+    }
+
+    if (relatedBooks.length === 0) {
+      return (
+        <div className="text-center py-6 bg-gray-50 rounded-lg">
+          <p className="text-gray-500">Không tìm thấy sách liên quan.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {relatedBooks.map((relatedBook) => (
+          <div key={relatedBook.id} className="animate-fade-in">
+            <BookCard book={relatedBook} />
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -421,15 +607,15 @@ export default function BookDetailPage() {
                     </svg>
                     Thêm vào giỏ hàng
                   </button>
-                  <Link
-                    href="/cart"
+                  <button
+                    onClick={handleBuyNow}
                     className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     Mua ngay
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
@@ -547,94 +733,20 @@ export default function BookDetailPage() {
               {activeTab === 'reviews' && (
                 <div>
                   <h3 className="text-xl font-bold mb-4">Đánh giá người bán</h3>
-                  
-                  {book.reviews && book.reviews.length > 0 ? (
-                    <>
-                      <div className="flex items-center mb-6">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <svg key={i} xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          ))}
-                        </div>
-                        <span className="ml-2 text-xl font-medium text-gray-700">5.0</span>
-                        <span className="ml-2 text-gray-500">({book.reviews.length} đánh giá)</span>
-                      </div>
-
-                      {/* Hiển thị các đánh giá từ API */}
-                      <div className="space-y-6">
-                        {book.reviews.map((review: any, index: number) => (
-                          <div key={index} className="p-4 bg-gray-50 rounded-lg">
-                            <div className="flex items-start">
-                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4 flex-shrink-0">
-                                <span className="font-medium">{review.reviewer?.substring(0, 2) || 'NN'}</span>
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center mb-2">
-                                  <span className="font-medium text-gray-800 mr-2">{review.reviewer || 'Người dùng ẩn danh'}</span>
-                                  {/* Hiển thị số sao */}
-                                  <div className="flex">
-                                    {[...Array(5)].map((_, i) => (
-                                      <svg key={i} xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`} viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                      </svg>
-                                    ))}
-                                  </div>
-                                </div>
-                                <p className="text-gray-600">{review.comment}</p>
-                                <p className="text-gray-400 text-sm mt-2">{review.createdAt ? formatDate(review.createdAt) : ''}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                        <div className="mt-6 text-center">
-                          <button className="text-green-600 hover:text-green-700 font-medium">
-                            Xem tất cả đánh giá
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="bg-gray-50 rounded-lg p-8 text-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <h4 className="text-lg font-medium text-gray-600 mb-2">Chưa có đánh giá nào</h4>
-                      <p className="text-gray-500">Người bán này chưa nhận được đánh giá từ người mua. Hãy là người đầu tiên mua sách và đánh giá!</p>
-                    </div>
-                  )}
+                  {renderReviewsTab()}
                 </div>
               )}
             </div>
           </div>
           
-          {/* Related Books (Placeholder) */}
+          {/* Related Books */}
           <section>
             <h2 className="text-2xl font-bold mb-6 relative text-gray-900">
               Sách liên quan
               <span className="absolute bottom-0 left-0 w-20 h-1 bg-green-600"></span>
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {Array(4).fill(0).map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="relative h-48 bg-gray-100">
-                    <BookPlaceholder />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-medium text-gray-900 line-clamp-2 min-h-[48px]">
-                      Sách liên quan {i + 1}
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1">Tác giả mẫu</p>
-                    <div className="mt-4">
-                      <span className="font-bold text-green-700">85.000đ</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {renderRelatedBooks()}
           </section>
         </div>
       </main>
