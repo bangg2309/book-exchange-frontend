@@ -28,6 +28,8 @@ export default function BooksPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState<'grid' | 'list'>('grid');
+  const [paramsProcessed, setParamsProcessed] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   
@@ -85,6 +87,7 @@ export default function BooksPage() {
       condition,
       schoolId
     });
+    setParamsProcessed(true);
   }, [searchParams]);
 
   // Close mobile sidebar when clicking outside
@@ -117,6 +120,9 @@ export default function BooksPage() {
 
   // Fetch books based on current filters and pagination
   useEffect(() => {
+    // Chỉ gọi API khi tham số đã được xử lý
+    if (!paramsProcessed) return;
+    
     const fetchBooks = async () => {
       try {
         setLoading(true);
@@ -152,11 +158,16 @@ export default function BooksPage() {
         setBooks([]);
       } finally {
         setLoading(false);
+        // Đánh dấu đã hoàn thành lần tải đầu tiên
+        if (isInitialLoad) {
+          setIsInitialLoad(false);
+        }
       }
     };
 
+    // Nếu là lần đầu tải hoặc các tham số thay đổi, thực hiện fetch
     fetchBooks();
-  }, [currentPage, searchQuery, sortOption, sortDirection, filters]);
+  }, [currentPage, searchQuery, sortOption, sortDirection, filters, paramsProcessed]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

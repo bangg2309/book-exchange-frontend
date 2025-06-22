@@ -46,9 +46,9 @@ export default function PaymentCallbackPage() {
 
   const handleContinue = () => {
     if (orderId) {
-      router.push(`/orders/${orderId}`);
+      router.push(`/profile/buy-orders`);
     } else {
-      router.push('/orders');
+      router.push('/profile/buy-orders');
     }
   };
 
