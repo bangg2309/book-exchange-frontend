@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaChevronDown } from 'react-icons/fa';
+import { FaAngleDown } from 'react-icons/fa';
 
 interface Category {
   id: number;
@@ -107,7 +107,7 @@ const BookFilters: React.FC<BookFiltersProps> = ({ filters, onFilterChange }) =>
             <select
               value={filters.categoryId}
               onChange={(e) => handleFilterChange('categoryId', e.target.value)}
-              className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md bg-white"
+              className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md bg-white appearance-none"
             >
               <option value="">Tất cả loại sách</option>
               {loading ? (
@@ -121,7 +121,7 @@ const BookFilters: React.FC<BookFiltersProps> = ({ filters, onFilterChange }) =>
               )}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-              <FaChevronDown className="h-3 w-3" />
+              <FaAngleDown className="h-4 w-4" />
             </div>
           </div>
         </div>
@@ -136,7 +136,7 @@ const BookFilters: React.FC<BookFiltersProps> = ({ filters, onFilterChange }) =>
                 const [min, max] = e.target.value.split('-');
                 handlePriceChange(min, max);
               }}
-              className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md bg-white"
+              className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md bg-white appearance-none"
             >
               <option value="-">Tất cả mức giá</option>
               {priceRanges.map((range, index) => (
@@ -146,7 +146,7 @@ const BookFilters: React.FC<BookFiltersProps> = ({ filters, onFilterChange }) =>
               ))}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-              <FaChevronDown className="h-3 w-3" />
+              <FaAngleDown className="h-4 w-4" />
             </div>
           </div>
         </div>
@@ -158,7 +158,7 @@ const BookFilters: React.FC<BookFiltersProps> = ({ filters, onFilterChange }) =>
             <select
               value={filters.condition}
               onChange={(e) => handleFilterChange('condition', e.target.value)}
-              className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md bg-white"
+              className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md bg-white appearance-none"
             >
               <option value="">Tất cả tình trạng</option>
               {conditions.map((condition) => (
@@ -168,7 +168,7 @@ const BookFilters: React.FC<BookFiltersProps> = ({ filters, onFilterChange }) =>
               ))}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-              <FaChevronDown className="h-3 w-3" />
+              <FaAngleDown className="h-4 w-4" />
             </div>
           </div>
         </div>
@@ -180,7 +180,7 @@ const BookFilters: React.FC<BookFiltersProps> = ({ filters, onFilterChange }) =>
             <select
               value={filters.schoolId}
               onChange={(e) => handleFilterChange('schoolId', e.target.value)}
-              className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md bg-white"
+              className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md bg-white appearance-none"
             >
               <option value="">Tất cả trường</option>
               {loading ? (
@@ -194,7 +194,7 @@ const BookFilters: React.FC<BookFiltersProps> = ({ filters, onFilterChange }) =>
               )}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-              <FaChevronDown className="h-3 w-3" />
+              <FaAngleDown className="h-4 w-4" />
             </div>
           </div>
         </div>
