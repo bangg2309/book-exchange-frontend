@@ -1,6 +1,5 @@
 import Header from '@/components/home/Header';
 import HeroBanner from '@/components/home/HeroBanner';
-import BookFilter from '@/components/home/BookFilter';
 import LatestBooksSection from '@/components/home/LatestBooksSection';
 import CategorySection from '@/components/home/CategorySection';
 import ProcessSection from '@/components/home/ProcessSection';
@@ -12,7 +11,6 @@ export default function Home() {
             <Header />
             <main>
                 <HeroBanner />
-                <BookFilter />
                 <LatestBooksSection />
                 <CategorySection />
                 <ProcessSection />

@@ -58,14 +58,15 @@ export default function RegisterPage() {
         try {
             setIsLoading(true);
             
-            // Call social login method which will show toast if there's an error
-            await authService.socialLogin(provider);
-            
-            router.push('/admin');
+            if (provider === 'google') {
+                // Chuyển hướng đến endpoint OAuth2 của Spring Security
+                window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081'}/oauth2/authorization/google`;
+            } else {
+                // Xử lý các nhà cung cấp khác nếu cần
+                await authService.socialLogin(provider);
+            }
         } catch (err: any) {
             console.error('Social registration error:', err);
-            // Toast is shown by authService.socialLogin already
-        } finally {
             setIsLoading(false);
         }
     };
