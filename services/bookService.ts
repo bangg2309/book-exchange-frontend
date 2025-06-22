@@ -18,6 +18,7 @@ const API_ROUTES = {
   LISTED_BOOKS: '/listed-books',
   LISTED_BOOK_BY_ID: (id: string) => `/listed-books/${id}`,
   LATEST_BOOKS: '/listed-books/latest',
+  RELATED_BOOKS: (id: string) => `/listed-books/${id}/related`,
 };
 
 export interface Book {
@@ -326,6 +327,18 @@ export const bookService = {
     } catch (error) {
       console.error('Error getting listed book details:', error);
       toastService.error('Không thể tải thông tin sách. Vui lòng thử lại sau.');
+      throw error;
+    }
+  },
+
+  // Get related books by category
+  getRelatedBooks: async (bookId: string | number): Promise<ApiResponse<any>> => {
+    try {
+      const response = await apiService.get<ApiResponse<any>>(API_ROUTES.RELATED_BOOKS(String(bookId)));
+      return response;
+    } catch (error) {
+      console.error('Error getting related books:', error);
+      // Không hiển thị toast lỗi vì đây không phải là tính năng quan trọng
       throw error;
     }
   },
