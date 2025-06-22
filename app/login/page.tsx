@@ -154,41 +154,15 @@ export default function LoginPage() {
         try {
             setIsLoading(true);
             
-            // Call social login method which will show toast if there's an error
-            await authService.socialLogin(provider);
-            
-            // For demo purposes right now, simulate a successful social login
-            // Force a fresh check for user info
-            await authService.getUserInfo();
-            
-            // Determine if user is admin
-            const isAdmin = authService.isAdmin();
-            console.log('Social login - User is admin:', isAdmin);
-            
-            // Set up token refresh
-            authService.setupTokenRefresh();
-            
-            // Store authentication state in localStorage to trigger storage event
-            localStorage.setItem('isAdmin', isAdmin ? 'true' : 'false');
-            
-            // Also dispatch a custom event for components in the same window
-            window.dispatchEvent(new Event('auth-changed'));
-            
-            // Delay redirect slightly to allow header to update
-            setTimeout(() => {
-                // Redirect based on role
-                if (isAdmin) {
-                    console.log('Social login - Redirecting admin user to /admin');
-                    router.push('/admin');
-                } else {
-                    console.log('Social login - Redirecting regular user to /profile');
-                    router.push('/profile');
-                }
-            }, 100);
+            if (provider === 'google') {
+                // Chuyển hướng đến endpoint OAuth2 của Spring Security
+                window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081'}/oauth2/authorization/google`;
+            } else {
+                // Xử lý các nhà cung cấp khác nếu cần
+                await authService.socialLogin(provider);
+            }
         } catch (err: any) {
             console.error('Social login error:', err);
-            // Toast is shown by authService.socialLogin already
-        } finally {
             setIsLoading(false);
         }
     };
