@@ -125,6 +125,7 @@ const Header = () => {
                     </nav>
 
                     {/* User Actions */}
+
                     <div className="flex items-center space-x-2">
                         <CartIcon/>
 
