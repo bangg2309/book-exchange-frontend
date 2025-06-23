@@ -69,5 +69,22 @@ export const dashboardService = {
       toastService.error('Không thể lấy thông tin sách gần đây');
       return null;
     }
+  },
+
+  /**
+   * Lấy danh sách sách đang chờ phê duyệt
+   */
+  async getPendingBooks(limit: number = 5): Promise<any[] | null> {
+    try {
+      // Sử dụng API của ListedBookController với status=0 (đang chờ phê duyệt)
+      // Và sắp xếp theo thời gian tạo giảm dần (mới nhất lên đầu)
+      const response = await apiService.get<ApiResponse<any>>(`/books/status/0?page=0&size=${limit}&sortBy=createdAt&sortDir=DESC`);
+      console.log('Pending books response:', response.result?.content);
+      return response.result?.content || [];
+    } catch (error) {
+      console.error('Error fetching pending books:', error);
+      toastService.error('Không thể lấy thông tin sách đang chờ phê duyệt');
+      return null;
+    }
   }
 }; 

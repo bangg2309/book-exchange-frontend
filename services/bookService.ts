@@ -20,6 +20,8 @@ const API_ROUTES = {
   LATEST_BOOKS: '/listed-books/latest',
   LISTED_BOOKS_SEARCH: '/listed-books/search',
   RELATED_BOOKS: (id: string) => `/listed-books/${id}/related`,
+  APPROVE_BOOK: (id: string) => `/books/${id}/approve`,
+  REJECT_BOOK: (id: string) => `/books/${id}/reject`,
 };
 
 export interface Book {
@@ -77,10 +79,14 @@ export const bookService = {
     }
   },
 
-  getBooksOfPage: async (page: number = 0, size: number = 5): Promise<BookPage> => {
+  getBooksOfPage: async (page: number = 0, size: number = 5, status: number | null = null): Promise<BookPage> => {
     try {
-      const { data } = await api.get<ApiResponse<BookPage>>(`/listed-books/all?page=${page}&size=${size}`);
-      return processApiResponse(data, 'Invalid categories response from server');
+      let url = `/listed-books/all?page=${page}&size=${size}`;
+      if (status !== null) {
+        url += `&status=${status}`;
+      }
+      const { data } = await api.get<ApiResponse<BookPage>>(url);
+      return processApiResponse(data, 'Invalid books response from server');
     } catch (error: any) {
       return handleApiError(error, 'An error occurred while fetching books', 'fetching books');
     }
@@ -621,6 +627,36 @@ export const bookService = {
     } catch (error) {
       console.error('Error fetching latest books:', error);
       return [];
+    }
+  },
+
+  // Phê duyệt sách (chuyển status từ 0 thành 1)
+  approveBook: async (id: string): Promise<void> => {
+    try {
+      await api.put(API_ROUTES.APPROVE_BOOK(id));
+      // Bỏ thông báo thành công ở đây để tránh trùng lặp
+    } catch (error) {
+      return handleApiError(error, 'Lỗi khi phê duyệt sách', 'approveBook');
+    }
+  },
+
+  // Lấy thông tin chi tiết của sách theo ID
+  getBookDetail: async (id: string): Promise<Book> => {
+    try {
+      const { data } = await api.get<ApiResponse<Book>>(`/books/${id}`);
+      return processApiResponse(data, 'Không thể lấy thông tin sách');
+    } catch (error) {
+      return handleApiError(error, 'Lỗi khi lấy thông tin sách', 'getBookDetail');
+    }
+  },
+
+  // Từ chối sách (chuyển status từ 0 sang 2)
+  rejectBook: async (id: string, reason?: string): Promise<void> => {
+    try {
+      await api.put(API_ROUTES.REJECT_BOOK(id), { reason });
+      // Bỏ thông báo thành công ở đây để tránh trùng lặp
+    } catch (error) {
+      return handleApiError(error, 'Lỗi khi từ chối sách', 'rejectBook');
     }
   },
 };
